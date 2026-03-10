@@ -56,7 +56,6 @@ async def run_e2e_test():
             await send_telegram_report(
                 token,
                 chat_id,
-                report_path,
                 message_text="[E2E Test] Macro Pulse Report",
             )
             print("[OK] Telegram message sent (Check your app)")

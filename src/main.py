@@ -87,7 +87,6 @@ async def main():
         await send_telegram_report(
             telegram_token,
             telegram_chat_id,
-            output_path,
             telegram_summary,
             image_path=screenshot_path,
         )

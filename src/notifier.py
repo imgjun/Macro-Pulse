@@ -2,22 +2,18 @@ import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
-import asyncio
 from telegram import Bot
 
 
 async def send_telegram_report(
     token,
     chat_id,
-    html_file_path=None,
     message_text="Daily Macro Pulse Report",
     image_path=None,
 ):
     """
     Sends the report to Telegram.
-    Can send a message and/or a file (PDF/HTML) and/or an image.
+    Can send a message and/or an image.
     """
     if not token or not chat_id:
         print("Telegram token or chat_id missing. Skipping Telegram.")
@@ -32,14 +28,6 @@ async def send_telegram_report(
             with open(image_path, "rb") as img:
                 await bot.send_photo(chat_id=chat_id, photo=img)
                 print(f"Telegram photo sent: {image_path}")
-
-        if html_file_path and os.path.exists(html_file_path):
-            with open(html_file_path, "rb") as f:
-                # Send as document
-                await bot.send_document(
-                    chat_id=chat_id, document=f, filename="macro_pulse_report.html"
-                )
-                print("Telegram report sent.")
     except Exception as e:
         print(f"Failed to send Telegram message: {e}")
 
