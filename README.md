@@ -88,7 +88,7 @@ python src/main.py --market US
 
 ## 리포트 포맷 구성
 
-텔레그램 요약 포맷과 스크린샷 구성은 이제 코드나 GitHub Actions 파일에 하드코딩하지 않고 [`config/report_formats.json`](/home/lys74/DEV/Macro-Pulse/config/report_formats.json)에서 관리합니다.
+텔레그램 요약 포맷과 스크린샷 구성은 이제 코드나 GitHub Actions 파일에 하드코딩하지 않고 [`config/report_formats.json`](config/report_formats.json)에서 관리합니다.
 
 - 한국장 마감(`KR`) 포맷: 국내 증시를 먼저 보여주고, 이어서 아시아 증시, 변동성, 한일 국채, 환율 순으로 배치합니다.
 - 한국장 마감(`KR`) 스크린샷: `KOSPI`, `KOSDAQ` 히트맵 2장을 첨부합니다.

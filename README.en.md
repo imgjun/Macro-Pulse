@@ -88,7 +88,7 @@ python src/main.py --market US
 
 ## Report Format Rules
 
-Telegram summary layout and screenshot composition are now managed in [config/report_formats.json](/home/lys74/DEV/Macro-Pulse/config/report_formats.json) instead of being hardcoded in the workflow or summary code.
+Telegram summary layout and screenshot composition are now managed in [config/report_formats.json](config/report_formats.json) instead of being hardcoded in the workflow or summary code.
 
 - `KR` close format: domestic Korean indices first, then Asia indices, volatility, Japan/Korea government bonds, and FX.
 - `KR` close screenshots: two heatmaps for `KOSPI` and `KOSDAQ`.
