@@ -97,6 +97,16 @@ Telegram summary layout and screenshot composition are now managed in [config/re
 - How to customize: edit `summary_sections` to change section titles, categories, and item order, and edit `screenshot_targets` to change which images are attached.
 - GitHub Actions reference: workflows load the same file through `REPORT_FORMAT_CONFIG=config/report_formats.json`.
 
+## Screenshot Examples
+
+### US Close Example
+
+![US close report example](imgs/us.png)
+
+### Korea Close Example
+
+![Korea close report example](imgs/kr.png)
+
 ## Output Files
 
 - `macro_pulse_report.html`

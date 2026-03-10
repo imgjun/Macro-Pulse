@@ -97,6 +97,16 @@ python src/main.py --market US
 - 포맷 변경 방법: `summary_sections`에서 섹션 제목, 카테고리, 항목 순서를 수정하고 `screenshot_targets`에서 첨부할 스크린샷 종류를 바꾸면 됩니다.
 - GitHub Actions 참조 방식: 워크플로는 `REPORT_FORMAT_CONFIG=config/report_formats.json` 환경 변수로 같은 설정 파일을 읽습니다.
 
+## 스크린샷 예시
+
+### 미국장 마감 예시
+
+![미국장 마감 보고서 예시](imgs/us.png)
+
+### 한국장 마감 예시
+
+![한국장 마감 보고서 예시](imgs/kr.png)
+
 ## 생성 산출물
 
 - `macro_pulse_report.html`: 메인 HTML 리포트
