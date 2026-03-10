@@ -164,6 +164,57 @@ class ExchangeRateCalculationTests(unittest.TestCase):
 
         print_exchange_snapshot(exchange)
 
+    @patch.dict(data_fetcher.YF_TICKERS, {}, clear=True)
+    @patch.dict(data_fetcher.YF_RATES_HISTORY, {}, clear=True)
+    @patch(
+        "data_fetcher.fetch_cnbc_data",
+        return_value={
+            ".KSVKOSPI": {
+                "price": 66.61,
+                "change": -5.21,
+                "change_pct": -7.254246728,
+            },
+            "JP10Y": {
+                "price": 2.184,
+                "change": -0.001,
+                "change_pct": -0.04576659,
+            },
+            "KR10Y": {
+                "price": 3.629,
+                "change": -0.112,
+                "change_pct": -2.993851911,
+            },
+        },
+    )
+    @patch("data_fetcher.fetch_frankfurter_rates", return_value={})
+    def test_fetch_all_data_keeps_cnbc_daily_change_values(
+        self,
+        _mock_fx,
+        _mock_cnbc,
+    ):
+        results = data_fetcher.fetch_all_data()
+
+        volatility = {item["name"]: item for item in results["volatility"]}
+        bonds = {item["name"]: item for item in results["commodities_rates"]}
+
+        self.assertAlmostEqual(volatility["VKOSPI"]["price"], 66.61)
+        self.assertAlmostEqual(volatility["VKOSPI"]["change"], -5.21)
+        self.assertAlmostEqual(volatility["VKOSPI"]["change_pct"], -7.254246728)
+
+        self.assertAlmostEqual(bonds["Japan 10Y Treasury"]["price"], 2.184)
+        self.assertAlmostEqual(bonds["Japan 10Y Treasury"]["change"], -0.001)
+        self.assertAlmostEqual(
+            bonds["Japan 10Y Treasury"]["change_pct"],
+            -0.04576659,
+        )
+
+        self.assertAlmostEqual(bonds["Korea 10Y Treasury"]["price"], 3.629)
+        self.assertAlmostEqual(bonds["Korea 10Y Treasury"]["change"], -0.112)
+        self.assertAlmostEqual(
+            bonds["Korea 10Y Treasury"]["change_pct"],
+            -2.993851911,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

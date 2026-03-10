@@ -5,9 +5,9 @@ Bot for daily financial macro data monitoring. It fetches Exchange Rates, Indice
 ## Features
 
 - **Multi-Source Data Fetching**:
-  - **Yahoo Finance**: Indices, Crypto, Commodities, and FX History.
-  - **CNBC API**: Real-time Exchange Rates and Bond Yields (Japan 10Y, Korea 10Y, VKOSPI).
-  - **Hybrid Logic**: Uses CNBC for real-time FX prices and Yahoo Finance for 7-day trend analysis.
+  - **Yahoo Finance**: Indices, Crypto, Commodities, and FX history.
+  - **Frankfurter**: Live FX spot rates for USD/KRW, USD/JPY, EUR/USD, and USD/CNY.
+  - **CNBC Quote Pages**: Direct HTML scraping for VKOSPI, Japan 10Y, and Korea 10Y.
 - **Reporting**:
   - Generates a responsive HTML report (`macro_pulse_report.html`).
   - Includes daily change % and 7-day sparkline trends.
@@ -25,7 +25,6 @@ Bot for daily financial macro data monitoring. It fetches Exchange Rates, Indice
 - Python 3.12+
 - GitHub Account (for automation)
 - Telegram Bot Token & Chat ID
-- RapidAPI Key (CNBC)
 
 ### 2. Installation
 ```bash
@@ -37,7 +36,6 @@ Create a `.env` file in the root directory (see `.env-sample`):
 ```ini
 TELEGRAM_BOT_TOKEN=your_token
 TELEGRAM_CHAT_ID=your_id
-RAPIDAPI_CNBC_KEY=your_key
 # Email optional
 ```
 
@@ -57,7 +55,6 @@ The workflow runs automatically on schedule. You need to configure **Secrets** a
 Go to `Settings` -> `Secrets and variables` -> `Actions` and add:
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
-- `RAPIDAPI_CNBC_KEY`
 - (Optional) `SMTP_USERNAME`, `SMTP_PASSWORD`, `RECIPIENT_EMAIL`
 
 #### GitHub Pages Deployment
@@ -69,7 +66,7 @@ To view the report online:
 
 ## Troubleshooting
 - **GitHub Pages shows README**: Ensure you switched the branch to `gh-pages` in Settings. Try a hard refresh (Cmd+Shift+R) to clear browser cache.
-- **Missing Data**: Check API keys and `requirements.txt` dependencies.
+- **Missing Data**: Check outbound network access to Yahoo Finance, Frankfurter, and CNBC plus the installed dependencies.
 - **CI Errors**: Check the Actions tab logs. Common issues are Python version mismatch (requires 3.12+) or missing pip packages.
 
 ## Project Structure

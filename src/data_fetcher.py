@@ -184,21 +184,31 @@ def fetch_all_data():
     if ".KSVKOSPI" in cnbc_data:
         item = cnbc_data[".KSVKOSPI"]
         results["volatility"].append(
-            create_item("VKOSPI", item["price"], 0, 0, use_blank=True)
+            create_item("VKOSPI", item["price"], item["change"], item["change_pct"])
         )
 
     # Japan 10Y
     if "JP10Y" in cnbc_data:
         item = cnbc_data["JP10Y"]
         results["commodities_rates"].append(
-            create_item("Japan 10Y Treasury", item["price"], 0, 0, use_blank=True)
+            create_item(
+                "Japan 10Y Treasury",
+                item["price"],
+                item["change"],
+                item["change_pct"],
+            )
         )
 
     # Korea 10Y
     if "KR10Y" in cnbc_data:
         item = cnbc_data["KR10Y"]
         results["commodities_rates"].append(
-            create_item("Korea 10Y Treasury", item["price"], 0, 0, use_blank=True)
+            create_item(
+                "Korea 10Y Treasury",
+                item["price"],
+                item["change"],
+                item["change_pct"],
+            )
         )
 
     # 3. Fetch Yahoo Finance Data

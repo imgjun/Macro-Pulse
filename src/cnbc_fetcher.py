@@ -1,147 +1,222 @@
-import os
 import logging
-from cnbc import APIWrapper, Endpoints
+import re
+import time
+from html import unescape
+from html.parser import HTMLParser
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-# Manual mapping for symbols that fail translation or to speed up
-MANUAL_ISSUE_IDS = {
-    "KR10Y": "6328006",
-    "JP10Y": "5767339",
-    "JP10Y-JP": "5767339",
-    ".KSVKOSPI": "18105291",
-    "KRW=": "611656",  # USD/KRW
-    "JPY=": "616660",  # USD/JPY
-    "EUR=": "617254",  # EUR/USD
-    "CNY=": "612178",  # USD/CNY
-    # Note: If translate works, this overrides. Prioritize manual map for reliability.
+CNBC_QUOTES = {
+    ".KSVKOSPI": {
+        "name": "VKOSPI",
+        "url": "https://www.cnbc.com/quotes/.KSVKOSPI",
+    },
+    "JP10Y": {
+        "name": "Japan 10Y Treasury",
+        "url": "https://www.cnbc.com/quotes/JP10Y",
+    },
+    "KR10Y": {
+        "name": "Korea 10Y Treasury",
+        "url": "https://www.cnbc.com/quotes/KR10Y",
+    },
 }
+
+REQUEST_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (X11; Linux x86_64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/122.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+    "Cache-Control": "no-cache",
+}
+
+
+class QuoteStripParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.container_depth = 0
+        self.span_stack = []
+        self.in_price = False
+        self.current_change_direction = None
+        self.change_direction = None
+        self.price_chunks = []
+        self.change_chunks = []
+
+    def handle_starttag(self, tag, attrs):
+        attr_map = dict(attrs)
+        classes = set((attr_map.get("class") or "").split())
+
+        if tag == "div" and self.container_depth == 0:
+            if "QuoteStrip-lastPriceStripContainer" in classes:
+                self.container_depth = 1
+            return
+
+        if self.container_depth == 0:
+            return
+
+        if tag == "div":
+            self.container_depth += 1
+            return
+
+        if tag != "span":
+            return
+
+        if "QuoteStrip-lastPrice" in classes:
+            self.span_stack.append("price")
+            self.in_price = True
+            return
+
+        if any(css_class.startswith("QuoteStrip-change") for css_class in classes):
+            self.span_stack.append("change")
+            if "QuoteStrip-changeDown" in classes:
+                self.current_change_direction = -1
+            elif "QuoteStrip-changeUp" in classes:
+                self.current_change_direction = 1
+            else:
+                self.current_change_direction = 0
+            self.change_direction = self.current_change_direction
+            return
+
+        self.span_stack.append("other")
+
+    def handle_endtag(self, tag):
+        if self.container_depth == 0:
+            return
+
+        if tag == "div":
+            self.container_depth -= 1
+            if self.container_depth == 0:
+                self.in_price = False
+                self.current_change_direction = None
+            return
+
+        if tag != "span" or not self.span_stack:
+            return
+
+        span_role = self.span_stack.pop()
+        if span_role == "price":
+            self.in_price = False
+        elif span_role == "change" and "change" not in self.span_stack:
+            self.current_change_direction = None
+
+    def handle_data(self, data):
+        if self.container_depth == 0:
+            return
+
+        text = unescape(data).strip()
+        if not text:
+            return
+
+        if self.in_price:
+            self.price_chunks.append(text)
+        elif self.current_change_direction is not None:
+            self.change_chunks.append(text)
+
+
+def _parse_numeric(raw_value, fallback_sign=None):
+    normalized = unescape(raw_value).strip().replace(",", "").replace("%", "")
+    if not normalized or normalized.upper() == "UNCH":
+        return 0.0
+
+    sign = fallback_sign if fallback_sign is not None else 1
+    if normalized[0] in "+-":
+        sign = -1 if normalized[0] == "-" else 1
+        normalized = normalized[1:].strip()
+
+    return sign * float(normalized)
+
+
+def _parse_change_block(raw_value, fallback_sign=None):
+    normalized = unescape(raw_value).strip()
+    if not normalized or normalized.upper() == "UNCH":
+        return 0.0, 0.0
+
+    change_match = re.search(r"[+-]?\d[\d,]*(?:\.\d+)?", normalized)
+    if not change_match:
+        raise ValueError(f"Unable to parse CNBC change value: {raw_value}")
+
+    change = _parse_numeric(change_match.group(0), fallback_sign=fallback_sign)
+
+    change_pct_match = re.search(r"([+-]?\d[\d,]*(?:\.\d+)?)\s*%", normalized)
+    change_pct = (
+        _parse_numeric(change_pct_match.group(1))
+        if change_pct_match
+        else None
+    )
+
+    return change, change_pct
+
+
+def parse_cnbc_quote(html):
+    parser = QuoteStripParser()
+    parser.feed(html)
+
+    if not parser.price_chunks:
+        raise ValueError("CNBC quote page did not contain a last price block.")
+
+    price = _parse_numeric("".join(parser.price_chunks))
+    change, change_pct = _parse_change_block(
+        "".join(parser.change_chunks),
+        fallback_sign=parser.change_direction,
+    )
+    if change_pct is None:
+        previous_close = price - change
+        change_pct = (change / previous_close) * 100 if previous_close else 0.0
+
+    return {
+        "price": price,
+        "change": change,
+        "change_pct": change_pct,
+    }
+
+
+def fetch_cnbc_quote(symbol, attempts=3, retry_delay=1):
+    quote = CNBC_QUOTES.get(symbol)
+    if not quote:
+        raise KeyError(f"Unsupported CNBC symbol: {symbol}")
+
+    last_error = None
+    for attempt in range(1, attempts + 1):
+        try:
+            request = Request(quote["url"], headers=REQUEST_HEADERS)
+            with urlopen(request, timeout=15) as response:
+                html = response.read().decode("utf-8", "ignore")
+            parsed = parse_cnbc_quote(html)
+            parsed["name"] = quote["name"]
+            return parsed
+        except (HTTPError, URLError, TimeoutError) as exc:
+            last_error = exc
+            if attempt == attempts:
+                raise
+            time.sleep(retry_delay)
+
+    raise last_error
 
 
 def fetch_cnbc_data(symbols):
     """
-    Fetches data from CNBC via RapidAPI.
-    symbols: list of ticker strings (e.g., [".KSVKOSPI", "KRW=", ...])
+    Fetch quote data directly from CNBC quote pages.
+    symbols: list of ticker strings (e.g., [".KSVKOSPI", "JP10Y", "KR10Y"])
     Returns: dict {symbol: {'price': float, 'change': float, 'change_pct': float, 'name': str}}
     """
-    api_key = os.environ.get("RAPIDAPI_CNBC_KEY")
-    if not api_key:
-        logging.warning("RAPIDAPI_CNBC_KEY not found. Skipping CNBC data fetch.")
-        return {}
-
     results = {}
-    issue_ids = {}
-    symbols_to_translate = []
 
-    # 1. Resolve Issue IDs (Manual + Translate)
     for symbol in symbols:
-        if symbol in MANUAL_ISSUE_IDS:
-            issue_ids[symbol] = MANUAL_ISSUE_IDS[symbol]
-        else:
-            symbols_to_translate.append(symbol)
+        if symbol not in CNBC_QUOTES:
+            logging.warning(f"Unsupported CNBC symbol requested: {symbol}")
+            continue
 
-    if symbols_to_translate:
         try:
-            translate_api = APIWrapper(api_key, Endpoints.TRANSLATE)
-
-            for symbol in symbols_to_translate:
-                try:
-                    # logging.info(f"Translating {symbol}...")
-                    translate_api.params["symbol"] = symbol
-                    data = translate_api.request()
-
-                    if data and isinstance(data, list) and len(data) > 0:
-                        issue_ids[symbol] = data[0].get("issueId")
-                    elif data and isinstance(data, dict):
-                        issue_ids[symbol] = data.get("issueId")
-                    else:
-                        logging.warning(f"No translation found for {symbol}")
-
-                except Exception as e:
-                    logging.error(f"Error translating {symbol}: {e}")
-
-        except Exception as e:
-            logging.error(f"CNBC Translate Error: {e}")
-
-    if not issue_ids:
-        return {}
-
-    # 2. Get Summary for Issue IDs
-    try:
-        # Endpoints.GET_SUMMARY takes 'issueIds'
-        ids_list = [str(iid) for iid in issue_ids.values() if iid]
-        if not ids_list:
-            return {}
-
-        summary_api = APIWrapper(api_key, Endpoints.GET_SUMMARY)
-        summary_api.params["issueIds"] = ",".join(ids_list)
-
-        summary_data = summary_api.request()
-
-        if isinstance(summary_data, dict) and "ITVQuoteResult" in summary_data:
-            summary_data = summary_data["ITVQuoteResult"].get("ITVQuote", [])
-
-        # If single item, it might be a dict, not list?
-        if isinstance(summary_data, dict):
-            summary_data = [summary_data]
-
-        # 3. Parse Summary Data
-        # Response is list of dicts.
-        # Create issueId -> symbol map (handling many-to-one if any?)
-
-        # Create a lookup from issueId to data
-        data_by_id = {}
-        if isinstance(summary_data, list):
-            for item in summary_data:
-                # API returns 'issue_id' (snake), translate returned 'issueId' (camel)
-                iid = str(item.get("issue_id") or item.get("issueId"))
-                if iid:
-                    data_by_id[iid] = item
-
-        for symbol, iid in issue_ids.items():
-            iid = str(iid)
-            if iid in data_by_id:
-                item = data_by_id[iid]
-                try:
-                    # Helper to clean string numbers
-                    def clean_num(val):
-                        if isinstance(val, str):
-                            if val.strip().upper() == "UNCH":
-                                return 0.0
-                            val = val.replace("%", "").replace(",", "")
-                        return float(val)
-
-                    price = clean_num(item.get("last", 0))
-                    change = clean_num(item.get("change", 0))
-                    change_pct = clean_num(
-                        item.get("change_pct") or item.get("changePct") or 0
-                    )
-
-                    # Normalized to %?
-                    # If string was "1.40%", clean_num makes it 1.40.
-                    # If Yahoo uses 1.40 for 1.40%, then it's consistent.
-                    # Verify yahoo: change_pct: -1.44 (which is -1.44%).
-                    # So 1.40 is correct.
-                    # But if API returns raw 0.014...
-                    # Step 353 log: "change_pct": "-1.40%". So cleaning gives -1.40. Perfect.
-                    # What if no % sign? "change_pct" field name implies %.
-
-                    name = item.get("name") or item.get("symbol") or symbol
-
-                    results[symbol] = {
-                        "price": price,
-                        "change": change,
-                        "change_pct": change_pct,
-                        "name": name,
-                    }
-                except (ValueError, TypeError) as e:
-                    logging.warning(f"Error parsing item for {symbol}: {e}")
-                    pass
-
-    except Exception as e:
-        logging.error(f"CNBC Summary API Error: {e}")
+            results[symbol] = fetch_cnbc_quote(symbol)
+        except (HTTPError, URLError, TimeoutError, ValueError) as exc:
+            logging.error(f"Failed to fetch CNBC quote for {symbol}: {exc}")
+        except Exception as exc:
+            logging.error(f"Unexpected CNBC fetch error for {symbol}: {exc}")
 
     return results

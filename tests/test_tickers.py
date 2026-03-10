@@ -60,20 +60,18 @@ except Exception as e:
 
 print("\n--- Testing CNBC Tickers ---")
 
-key = os.environ.get("RAPIDAPI_CNBC_KEY")
-if not key:
-    print("[WARN] RAPIDAPI_CNBC_KEY not found in env. CNBC-only tests will fail/skip.")
-
 try:
     cnbc_data = fetch_cnbc_data(cnbc_symbols)
     if not cnbc_data:
-        print("[FAIL] No data returned from CNBC Fetcher (Check API Key?)")
+        print("[FAIL] No data returned from CNBC Fetcher")
     else:
         for symbol in cnbc_symbols:
             data = cnbc_data.get(symbol)
             if data:
                 print(
-                    f"[OK] {data.get('name', symbol)} ({symbol}): {data.get('price')}"
+                    "[OK] "
+                    f"{data.get('name', symbol)} ({symbol}): "
+                    f"{data.get('price')} ({data.get('change'):+})"
                 )
             else:
                 print(f"[FAIL] {symbol}: No data found")
