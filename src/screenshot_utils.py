@@ -18,6 +18,10 @@ MARKETMAP_CONTAINER_SELECTORS = (
     "div.fiq-marketmap",
     "#map_area.fiq-marketmap",
 )
+MARKETMAP_WRAPPER_SELECTORS = (
+    "#map_area.fiq-marketmap",
+    "div.fiq-marketmap",
+)
 MARKETMAP_SVG_SELECTOR = "svg.anychart-ui-support"
 
 
@@ -27,7 +31,9 @@ def get_chrome_driver():
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--window-size=1920,1600")
+    chrome_options.add_argument("--hide-scrollbars")
+    chrome_options.add_argument("--force-device-scale-factor=1")
     chrome_options.add_argument(
         "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
@@ -83,6 +89,69 @@ def resize_window_for_element(driver, element, min_width=1600, padding=120):
         "arguments[0].scrollIntoView({block: 'start', inline: 'nearest'});", element
     )
     time.sleep(2)
+
+
+def wait_for_marketmap_svg(driver, timeout=40):
+    wait = WebDriverWait(driver, timeout)
+    last_error = None
+
+    for selector in MARKETMAP_WRAPPER_SELECTORS:
+        try:
+            print(f"Waiting for rendered SVG in: {selector}")
+
+            def svg_ready(_driver):
+                wrapper = _driver.find_element(By.CSS_SELECTOR, selector)
+                if not wrapper.is_displayed():
+                    return False
+
+                svg = wrapper.find_element(By.CSS_SELECTOR, MARKETMAP_SVG_SELECTOR)
+                if not svg.is_displayed():
+                    return False
+
+                metrics = _driver.execute_script(
+                    """
+                    const svg = arguments[0];
+                    const rect = svg.getBoundingClientRect();
+                    return {
+                        width: Math.ceil(rect.width),
+                        height: Math.ceil(rect.height),
+                        nodeCount: svg.querySelectorAll('*').length,
+                        textLength: svg.textContent.trim().length,
+                    };
+                    """,
+                    svg,
+                )
+
+                ready = (
+                    metrics["width"] > 1000
+                    and metrics["height"] > 700
+                    and metrics["nodeCount"] > 25
+                    and metrics["textLength"] > 20
+                )
+                return svg if ready else False
+
+            return wait.until(svg_ready)
+        except Exception as exc:
+            last_error = exc
+
+    if last_error:
+        raise last_error
+
+    raise RuntimeError("Failed to locate rendered market map SVG.")
+
+
+def position_element_for_capture(driver, element, top_offset=160):
+    driver.execute_script(
+        """
+        const el = arguments[0];
+        const topOffset = arguments[1];
+        const rect = el.getBoundingClientRect();
+        window.scrollTo(0, window.scrollY + rect.top - topOffset);
+        """,
+        element,
+        top_offset,
+    )
+    time.sleep(1)
 
 
 def take_finviz_screenshot(output_path="finviz_map.png"):
@@ -149,21 +218,31 @@ def take_hankyung_marketmap_screenshot(market, output_path):
 
     try:
         url = MARKETMAP_URLS[market]
-        print(f"Navigating to {url}...")
-        driver.get(url)
 
-        print("Waiting for map element...")
-        element = wait_for_first_visible(
-            driver, MARKETMAP_CONTAINER_SELECTORS, timeout=20
-        )
+        for attempt in range(2):
+            print(f"Navigating to {url}... (attempt {attempt + 1})")
+            driver.get(url)
+            WebDriverWait(driver, 30).until(
+                lambda current_driver: current_driver.execute_script(
+                    "return document.readyState"
+                )
+                in ("interactive", "complete")
+            )
 
-        print("Waiting for chart to render...")
-        time.sleep(5)
-        resize_window_for_element(driver, element)
-
-        element.screenshot(output_path)
-        print(f"Screenshot saved to {output_path}")
-        return output_path
+            try:
+                print("Waiting for chart SVG to render...")
+                svg = wait_for_marketmap_svg(driver, timeout=40)
+                resize_window_for_element(driver, svg, min_width=1800, padding=240)
+                svg = wait_for_marketmap_svg(driver, timeout=20)
+                position_element_for_capture(driver, svg, top_offset=180)
+                time.sleep(3)
+                svg.screenshot(output_path)
+                print(f"Screenshot saved to {output_path}")
+                return output_path
+            except Exception as exc:
+                print(f"Capture attempt {attempt + 1} failed: {exc}")
+                if attempt == 1:
+                    raise
 
     except Exception as e:
         import traceback
