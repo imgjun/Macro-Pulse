@@ -1,76 +1,173 @@
+**Language:** **한국어** | [English](README.en.md)
+
 # Macro Pulse Bot
 
-Bot for daily financial macro data monitoring. It fetches Exchange Rates, Indices, Commodities, Crypto, and Volatility data, generates a clean HTML report with sparkline trends, and sends it via Telegram and Email. It also deploys the latest report to GitHub Pages.
+Macro Pulse Bot은 주요 거시경제 지표를 수집해 HTML 리포트를 만들고, 텔레그램 및 이메일로 전달하는 자동화 봇입니다. 기본 실행 시 현재 UTC 시간을 기준으로 한국장(`KR`) 또는 미국장(`US`) 모드를 자동 선택하며, GitHub Actions를 통해 정기 실행할 수 있습니다.
 
-## Features
+## 주요 기능
 
-- **Multi-Source Data Fetching**:
-  - **Yahoo Finance**: Indices, Crypto, Commodities, and FX history.
-  - **Frankfurter**: Live FX spot rates for USD/KRW, USD/JPY, EUR/USD, and USD/CNY.
-  - **CNBC Quote Pages**: Direct HTML scraping for VKOSPI, Japan 10Y, and Korea 10Y.
-- **Reporting**:
-  - Generates a responsive HTML report (`macro_pulse_report.html`).
-  - Includes daily change % and 7-day sparkline trends.
-  - Handles missing data gracefully (blank cells vs broken charts).
-- **Notifications**:
-  - **Telegram**: Sends the report file + summary message.
-  - **Email**: Sends the report via SMTP (optional).
-- **Automation**:
-  - **GitHub Actions**: Runs automatically twice daily (06:00 KST for US Close, 17:00 KST for KR Close).
-  - **GitHub Pages**: Deploys the latest report to a web URL.
+- Yahoo Finance, Frankfurter, CNBC 데이터를 결합해 시장 데이터를 수집합니다.
+- 일간 변동률과 최근 7개 구간 추이를 포함한 HTML 리포트를 생성합니다.
+- `KR` 모드에서는 KOSPI/KOSDAQ 히트맵, `US` 모드에서는 Finviz 맵 스크린샷을 함께 전송합니다.
+- 텔레그램 메시지 전송을 지원하며, SMTP 설정 시 이메일 발송도 가능합니다.
+- GitHub Actions에서 스케줄 실행 후 최신 리포트를 GitHub Pages에 배포할 수 있습니다.
 
-## Setup
+## 수집 항목
 
-### 1. Prerequisites
-- Python 3.12+
-- GitHub Account (for automation)
-- Telegram Bot Token & Chat ID
+- 국내 지수: `KOSPI`, `KOSDAQ`
+- 해외 지수: `S&P 500`, `Nasdaq`, `Euro Stoxx 50`, `Nikkei 225`, `Hang Seng`, `Shanghai Composite`
+- 원자재/금리: `Gold`, `Silver`, `Copper`, `US 10Y Treasury`, `Japan 10Y Treasury`, `Korea 10Y Treasury`
+- 환율: `USD/KRW`, `JPY/KRW`, `EUR/KRW`, `CNY/KRW`
+- 가상자산: `Bitcoin`, `Ethereum`
+- 변동성: `VIX`, `VKOSPI`
 
-### 2. Installation
+## 동작 방식
+
+1. `src/data_fetcher.py`가 Yahoo Finance, Frankfurter, CNBC에서 데이터를 수집합니다.
+2. `src/report_generator.py`가 HTML 리포트와 텔레그램 요약 메시지를 생성합니다.
+3. `src/main.py`가 리포트를 `macro_pulse_report.html`로 저장합니다.
+4. `--dry-run`이 아니면 시장 모드에 맞는 스크린샷을 생성하고, 텔레그램/이메일 전송을 시도합니다.
+
+## 요구 사항
+
+- Python 3.12 이상
+- 인터넷 연결
+- 텔레그램 전송용 Bot Token 및 Chat ID
+- 스크린샷 기능 사용 시 Chrome 또는 Chromium 실행 환경
+- GitHub Actions 자동화를 사용할 경우 GitHub 저장소 및 Actions/Pages 설정
+
+## 설치
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Running Locally
-Create a `.env` file in the root directory (see `.env-sample`):
+## 환경 변수 설정
+
+루트 디렉터리에 `.env` 파일을 만들고 아래 값을 채워 넣습니다.
+
 ```ini
-TELEGRAM_BOT_TOKEN=your_token
-TELEGRAM_CHAT_ID=your_id
-# Email optional
+# Telegram Config
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
+
+# Email Config (optional)
+SMTP_USERNAME=your_email@gmail.com
+SMTP_PASSWORD=your_app_password_here
+RECIPIENT_EMAIL=recipient_email@example.com
 ```
 
-Run the bot:
-```bash
-# Dry run (generate report only)
-python src/main.py --dry-run
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`가 없으면 텔레그램 전송은 건너뜁니다.
+- `SMTP_USERNAME`, `SMTP_PASSWORD`가 없으면 이메일 전송은 건너뜁니다.
+- `RECIPIENT_EMAIL`이 비어 있으면 `SMTP_USERNAME` 주소로 전송합니다.
 
-# Run and send
+## 로컬 실행
+
+리포트만 생성:
+
+```bash
+python src/main.py --dry-run
+```
+
+자동 모드로 실행 후 전송:
+
+```bash
 python src/main.py
 ```
 
-### 4. GitHub Actions & Pages
-The workflow runs automatically on schedule. You need to configure **Secrets** and **Pages**.
+시장 모드 강제 지정:
 
-#### Required Secrets
-Go to `Settings` -> `Secrets and variables` -> `Actions` and add:
+```bash
+python src/main.py --market KR
+python src/main.py --market US
+```
+
+- `--market KR`: 한국장 기준 요약 및 KOSPI/KOSDAQ 스크린샷 사용
+- `--market US`: 미국장 기준 요약 및 Finviz 스크린샷 사용
+- `--market Global` 또는 옵션 생략: 현재 UTC 시간 기준으로 `KR`/`US` 자동 선택
+
+## 생성 산출물
+
+- `macro_pulse_report.html`: 메인 HTML 리포트
+- `finviz_map.png`: `US` 모드 스크린샷
+- `kospi_map.png`, `kosdaq_map.png`: `KR` 모드 스크린샷
+- `public/index.html`: GitHub Pages 배포용 리포트 파일
+
+## GitHub Actions
+
+기본 워크플로는 `.github/workflows/daily_report.yml`에 정의되어 있습니다.
+
+- 화요일-토요일 06:30 KST: 미국장 마감 기준 리포트 실행
+- 월요일-금요일 17:00 KST: 한국장 마감 기준 리포트 실행
+- 수동 실행: `workflow_dispatch`
+
+보조 워크플로 `.github/workflows/test_telegram.yml`에서는 `KR` 또는 `US` 모드를 선택해 텔레그램 전송 테스트를 수동 실행할 수 있습니다.
+
+## GitHub Secrets
+
+GitHub Actions에서 사용하려면 저장소의 `Settings > Secrets and variables > Actions`에 아래 값을 등록합니다.
+
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
-- (Optional) `SMTP_USERNAME`, `SMTP_PASSWORD`, `RECIPIENT_EMAIL`
+- `SMTP_USERNAME` (선택)
+- `SMTP_PASSWORD` (선택)
+- `RECIPIENT_EMAIL` (선택)
 
-#### GitHub Pages Deployment
-To view the report online:
-1.  Go to `Settings` -> `Pages`.
-2.  Set **Source** to `Deploy from a branch`.
-3.  Set **Branch** to `gh-pages` and folder to `/ (root)`.
-4.  Your report will be live at `https://<your-username>.github.io/Macro-Pulse/`.
+## GitHub Pages
 
-## Troubleshooting
-- **GitHub Pages shows README**: Ensure you switched the branch to `gh-pages` in Settings. Try a hard refresh (Cmd+Shift+R) to clear browser cache.
-- **Missing Data**: Check outbound network access to Yahoo Finance, Frankfurter, and CNBC plus the installed dependencies.
-- **CI Errors**: Check the Actions tab logs. Common issues are Python version mismatch (requires 3.12+) or missing pip packages.
+최신 리포트를 웹에서 보려면 GitHub Pages를 활성화해야 합니다.
 
-## Project Structure
-- `src/`: Source code (`data_fetcher.py`, `report_generator.py`, `cnbc_fetcher.py`, `main.py`).
-- `tests/`: End-to-End tests (`test_e2e.py`) and ticker verification (`test_tickers.py`).
-- `.github/workflows/`: Automation configuration.
-- `public/`: Output folder for GitHub Pages (created during runtime).
+1. 저장소의 `Settings > Pages`로 이동합니다.
+2. 배포 브랜치를 `gh-pages`로 설정합니다.
+3. 배포 후 리포트는 `https://<your-username>.github.io/Macro-Pulse/` 형태의 주소에서 확인할 수 있습니다.
+
+## 테스트
+
+기본 테스트 실행:
+
+```bash
+python -m unittest discover tests
+```
+
+라이브 스모크 테스트 실행:
+
+```bash
+RUN_LIVE_SMOKE_TESTS=1 python -m unittest discover tests
+```
+
+스크린샷만 개별 확인:
+
+```bash
+python tests/test_screenshot.py --target finviz
+python tests/test_screenshot.py --target kospi
+python tests/test_screenshot.py --target kosdaq
+```
+
+`RUN_LIVE_SMOKE_TESTS=1`은 실제 외부 서비스에 요청을 보내므로 네트워크 상태와 외부 사이트 응답에 따라 테스트가 달라질 수 있습니다.
+
+## 문제 해결
+
+- 스크린샷 생성 실패: Chrome/Chromium 실행 환경과 외부 사이트 접근 가능 여부를 확인하세요.
+- 텔레그램 메시지가 오지 않음: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` 값을 다시 확인하세요.
+- 이메일 전송 실패: Gmail SMTP 사용 기준으로 앱 비밀번호가 필요합니다.
+- 환율 또는 지수 데이터 누락: Yahoo Finance, Frankfurter, CNBC 응답 실패 시 일부 항목이 비어 있을 수 있습니다.
+- GitHub Pages가 갱신되지 않음: `gh-pages` 브랜치가 Pages 배포 대상으로 선택되어 있는지 확인하세요.
+
+## 디렉터리 구조
+
+```text
+.
+|-- src/
+|   |-- main.py
+|   |-- data_fetcher.py
+|   |-- frankfurter_fetcher.py
+|   |-- cnbc_fetcher.py
+|   |-- report_generator.py
+|   |-- notifier.py
+|   `-- screenshot_utils.py
+|-- tests/
+|-- .github/workflows/
+|-- .env-sample
+|-- SECRETS.md
+`-- README.en.md
+```
