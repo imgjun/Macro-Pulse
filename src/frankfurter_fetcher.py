@@ -2,10 +2,26 @@ import json
 import logging
 from urllib.error import URLError
 from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 
 FRANKFURTER_BASE_URL = "https://api.frankfurter.dev/v1/latest"
+FRANKFURTER_HEADERS = {
+    "User-Agent": "Macro-Pulse/1.0",
+    "Accept": "application/json",
+}
+
+
+def build_frankfurter_latest_url(base, symbols):
+    query = urlencode({"base": base, "symbols": ",".join(symbols)})
+    return f"{FRANKFURTER_BASE_URL}?{query}"
+
+
+def build_frankfurter_request(base, symbols):
+    return Request(
+        build_frankfurter_latest_url(base, symbols),
+        headers=FRANKFURTER_HEADERS,
+    )
 
 
 def fetch_frankfurter_rates():
@@ -21,9 +37,8 @@ def fetch_frankfurter_rates():
     """
 
     def fetch_latest(base, symbols):
-        query = urlencode({"base": base, "symbols": ",".join(symbols)})
-        url = f"{FRANKFURTER_BASE_URL}?{query}"
-        with urlopen(url, timeout=15) as response:
+        request = build_frankfurter_request(base, symbols)
+        with urlopen(request, timeout=15) as response:
             return json.load(response)
 
     try:
