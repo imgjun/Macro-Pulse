@@ -1,8 +1,11 @@
+import base64
 import time
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 
 
@@ -10,7 +13,9 @@ MARKETMAP_URLS = {
     "kospi": "https://markets.hankyung.com/marketmap/kospi",
     "kosdaq": "https://markets.hankyung.com/marketmap/kosdaq",
 }
-MARKETMAP_WRAPPER_SELECTORS = (
+MARKETMAP_CONTAINER_SELECTORS = (
+    "div.map-area",
+    "#map_area.map-area",
     "div.fiq-marketmap",
     "#map_area.fiq-marketmap",
 )
@@ -23,16 +28,17 @@ def get_chrome_driver():
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--window-size=1920,1440")
+    chrome_options.add_argument("--window-size=1920,1280")
     chrome_options.add_argument("--hide-scrollbars")
     chrome_options.add_argument("--force-device-scale-factor=1")
     chrome_options.add_argument(
         "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
-    chrome_options.set_capability("pageLoadStrategy", "normal")
+    chrome_options.set_capability("pageLoadStrategy", "eager")
 
     try:
-        driver = webdriver.Chrome(options=chrome_options)
+        service = ChromeService(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
         return driver
     except Exception as e:
         print(f"Failed to initialize Chrome Driver: {e}")
@@ -58,51 +64,6 @@ def wait_for_first_visible(driver, selectors, timeout=20):
     raise RuntimeError("No selectors provided.")
 
 
-def wait_for_marketmap_ready(driver, timeout=40):
-    wait = WebDriverWait(driver, timeout)
-    wrapper = wait_for_first_visible(driver, MARKETMAP_WRAPPER_SELECTORS, timeout)
-
-    def marketmap_is_ready(_driver):
-        data = _driver.execute_script(
-            """
-            const wrapper = arguments[0];
-            const svg = wrapper.querySelector(arguments[1]);
-            if (!svg) {
-                return null;
-            }
-
-            const wrapperRect = wrapper.getBoundingClientRect();
-            const svgRect = svg.getBoundingClientRect();
-            const rectCount = svg.querySelectorAll("rect").length;
-            const textCount = svg.querySelectorAll("text").length;
-            const pathCount = svg.querySelectorAll("path").length;
-
-            return {
-                wrapperWidth: Math.ceil(wrapperRect.width),
-                wrapperHeight: Math.ceil(wrapperRect.height),
-                svgWidth: Math.ceil(svgRect.width),
-                svgHeight: Math.ceil(svgRect.height),
-                rectCount,
-                textCount,
-                pathCount,
-            };
-            """,
-            wrapper,
-            MARKETMAP_SVG_SELECTOR,
-        )
-
-        if not data:
-            return False
-
-        has_size = data["wrapperWidth"] > 1000 and data["wrapperHeight"] > 500
-        has_chart = data["rectCount"] > 20 and (
-            data["textCount"] > 10 or data["pathCount"] > 20
-        )
-        return wrapper if has_size and has_chart else False
-
-    return wait.until(marketmap_is_ready)
-
-
 def resize_window_for_element(driver, element, min_width=1600, padding=120):
     dimensions = driver.execute_script(
         """
@@ -125,6 +86,89 @@ def resize_window_for_element(driver, element, min_width=1600, padding=120):
         "arguments[0].scrollIntoView({block: 'start', inline: 'nearest'});", element
     )
     time.sleep(2)
+
+
+def wait_for_svg_content(driver, element, timeout=20):
+    wait = WebDriverWait(driver, timeout)
+
+    def svg_is_ready(_driver):
+        data = _driver.execute_script(
+            """
+            const container = arguments[0];
+            const svg = container.querySelector(arguments[1]);
+            if (!svg) {
+                return null;
+            }
+
+            const rect = svg.getBoundingClientRect();
+            const rectCount = svg.querySelectorAll("rect").length;
+            const textCount = svg.querySelectorAll("text").length;
+            return {
+                width: Math.ceil(rect.width),
+                height: Math.ceil(rect.height),
+                rectCount,
+                textCount,
+            };
+            """,
+            element,
+            MARKETMAP_SVG_SELECTOR,
+        )
+
+        if not data:
+            return False
+
+        return (
+            data["width"] > 1000
+            and data["height"] > 500
+            and data["rectCount"] > 20
+            and data["textCount"] > 10
+        )
+
+    wait.until(svg_is_ready)
+
+
+def save_screenshot_with_padding(driver, element, output_path, padding=48):
+    bounds = driver.execute_script(
+        """
+        const container = arguments[0];
+        const svg = container.querySelector(arguments[1]);
+        const target = svg || container;
+        const containerRect = container.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+
+        return {
+            x: Math.max(0, Math.floor(Math.min(containerRect.left, targetRect.left) + window.scrollX)),
+            y: Math.max(0, Math.floor(Math.min(containerRect.top, targetRect.top) + window.scrollY)),
+            width: Math.ceil(Math.max(containerRect.right, targetRect.right) - Math.min(containerRect.left, targetRect.left)),
+            height: Math.ceil(Math.max(containerRect.bottom, targetRect.bottom) - Math.min(containerRect.top, targetRect.top)),
+        };
+        """,
+        element,
+        MARKETMAP_SVG_SELECTOR,
+    )
+
+    clip = {
+        "x": max(0, bounds["x"] - padding),
+        "y": max(0, bounds["y"] - padding),
+        "width": bounds["width"] + (padding * 2),
+        "height": bounds["height"] + (padding * 2),
+        "scale": 1,
+    }
+
+    try:
+        screenshot = driver.execute_cdp_cmd(
+            "Page.captureScreenshot",
+            {
+                "format": "png",
+                "fromSurface": True,
+                "captureBeyondViewport": True,
+                "clip": clip,
+            },
+        )
+        with open(output_path, "wb") as file_handle:
+            file_handle.write(base64.b64decode(screenshot["data"]))
+    except Exception:
+        element.screenshot(output_path)
 
 
 def take_finviz_screenshot(output_path="finviz_map.png"):
@@ -194,19 +238,16 @@ def take_hankyung_marketmap_screenshot(market, output_path):
         print(f"Navigating to {url}...")
         driver.get(url)
 
-        WebDriverWait(driver, 30).until(
-            lambda current_driver: current_driver.execute_script(
-                "return document.readyState"
-            )
-            == "complete"
+        print("Waiting for map element...")
+        element = wait_for_first_visible(
+            driver, MARKETMAP_CONTAINER_SELECTORS, timeout=20
         )
-
-        print("Waiting for rendered market map...")
-        element = wait_for_marketmap_ready(driver, timeout=40)
+        print("Waiting for chart to render...")
+        wait_for_svg_content(driver, element, timeout=20)
         resize_window_for_element(driver, element)
-        time.sleep(2)
+        time.sleep(3)
 
-        element.screenshot(output_path)
+        save_screenshot_with_padding(driver, element, output_path)
         print(f"Screenshot saved to {output_path}")
         return output_path
 
