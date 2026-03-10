@@ -34,14 +34,13 @@ jobs:
 
     - name: Run Macro Pulse Bot
       env:
+        REPORT_FORMAT_CONFIG: config/report_formats.json
         SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
         SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: |
-        # Determine market context based on time? 
-        # For now, just run the default script which fetches everything.
         python src/main.py
 
     - name: Commit and Push

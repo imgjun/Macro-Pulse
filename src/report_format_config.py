@@ -1,0 +1,46 @@
+import json
+import os
+from functools import lru_cache
+from pathlib import Path
+
+
+DEFAULT_REPORT_FORMAT_CONFIG = "config/report_formats.json"
+
+
+def resolve_report_format_config_path(config_path=None):
+    configured_path = (
+        config_path
+        or os.environ.get("REPORT_FORMAT_CONFIG")
+        or DEFAULT_REPORT_FORMAT_CONFIG
+    )
+    path = Path(configured_path)
+    if path.is_absolute():
+        return path
+
+    project_root = Path(__file__).resolve().parents[1]
+    return project_root / path
+
+
+@lru_cache(maxsize=8)
+def load_report_format_config(config_path=None):
+    config_file = resolve_report_format_config_path(config_path)
+    with config_file.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def get_mode_format(mode, format_config=None):
+    normalized_mode = (mode or "").strip().upper()
+    config = format_config or load_report_format_config()
+    modes = config.get("modes", {})
+
+    if normalized_mode not in modes:
+        available_modes = ", ".join(sorted(modes))
+        raise ValueError(
+            f"Unsupported report format mode '{mode}'. Available modes: {available_modes}"
+        )
+
+    return modes[normalized_mode]
+
+
+def get_screenshot_targets(mode, format_config=None):
+    return list(get_mode_format(mode, format_config).get("screenshot_targets", []))

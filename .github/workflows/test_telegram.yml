@@ -32,6 +32,7 @@ jobs:
 
     - name: Run Telegram report test
       env:
+        REPORT_FORMAT_CONFIG: config/report_formats.json
         SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
         SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}

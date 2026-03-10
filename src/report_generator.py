@@ -1,9 +1,11 @@
-import matplotlib.pyplot as plt
-import io
 import base64
-from jinja2 import Environment, FileSystemLoader
-import os
+import io
+
 import matplotlib
+import matplotlib.pyplot as plt
+from jinja2 import Environment, FileSystemLoader
+
+from report_format_config import get_mode_format, load_report_format_config
 
 # Use Agg backend for non-interactive environments
 matplotlib.use("Agg")
@@ -34,15 +36,13 @@ def generate_html_report(data, template_dir="src/templates"):
     """
     Generates the HTML report using Jinja2.
     """
-    # Add sparklines to data
     for category, items in data.items():
         for item in items:
             if len(item.get("history", [])) > 1:
                 item["sparkline"] = generate_sparkline(item["history"])
             else:
-                item["sparkline"] = ""  # No sparkline
+                item["sparkline"] = ""
 
-            # Format numbers
             if item.get("price") is not None:
                 if "KRW" in item["name"] or "Yen" in item["name"]:
                     item["price_str"] = f"{item['price']:,.2f}"
@@ -74,13 +74,12 @@ def generate_html_report(data, template_dir="src/templates"):
 
     env = Environment(loader=FileSystemLoader(template_dir))
     template = env.get_template("report.html")
-
     return template.render(data=data)
 
 
-def generate_telegram_summary(data, mode="Global"):
+def generate_telegram_summary(data, mode="Global", format_config=None):
     """
-    Generates a text summary for Telegram based on the mode (KR or US).
+    Generates a text summary for Telegram based on the configured market mode.
     """
 
     def _format_line(item):
@@ -90,7 +89,6 @@ def generate_telegram_summary(data, mode="Global"):
         if price is None:
             return f"{item['name']}: N/A"
 
-        # Format Price
         if (
             "KRW" in item["name"]
             or "Yen" in item["name"]
@@ -109,26 +107,22 @@ def generate_telegram_summary(data, mode="Global"):
                 "Euro Stoxx 50",
             ]
         ):
-            p_str = f"{price:,.2f}"
+            price_str = f"{price:,.2f}"
         elif (
             "Bond" in item["name"]
             or "Treasury" in item["name"]
             or "Year" in item["name"]
         ):
-            p_str = f"{price:.3f}"
+            price_str = f"{price:.3f}"
         else:
-            p_str = f"{price:,.2f}"
+            price_str = f"{price:,.2f}"
 
-        # Format Change
         if change_pct is not None and change_pct != 0:
-            c_str = f"({change_pct:+,.2f}%)"
-            return f"{item['name']}: {p_str} {c_str}"
-        else:
-            return f"{item['name']}: {p_str}"
+            change_str = f"({change_pct:+,.2f}%)"
+            return f"{item['name']}: {price_str} {change_str}"
 
-    lines = []
+        return f"{item['name']}: {price_str}"
 
-    # Helper to find items by name in a category list
     def get_items(category, names):
         found = []
         source_list = data.get(category, [])
@@ -139,77 +133,19 @@ def generate_telegram_summary(data, mode="Global"):
                     break
         return found
 
-    if mode == "KR":
-        # [국내 증시]
-        lines.append("[국내 증시]")
-        for item in get_items("indices_domestic", ["KOSPI", "KOSDAQ"]):
-            lines.append(_format_line(item))
-        lines.append("")
+    mode_format = get_mode_format(mode, format_config or load_report_format_config())
+    sections = mode_format.get("summary_sections", [])
 
-        # [해외 증시] (Asia)
-        lines.append("[해외 증시]")
-        for item in get_items(
-            "indices_overseas", ["Nikkei 225", "Hang Seng", "Shanghai Composite"]
-        ):
+    lines = []
+    for index, section in enumerate(sections):
+        lines.append(f"[{section['title']}]")
+        for item in get_items(section["category"], section["items"]):
             lines.append(_format_line(item))
-        lines.append("")
-
-        # [변동성]
-        lines.append("[변동성]")
-        for item in get_items("volatility", ["VKOSPI", "VIX"]):
-            lines.append(_format_line(item))
-        lines.append("")
-
-        # [채권]
-        lines.append("[채권]")
-        for item in get_items(
-            "commodities_rates", ["Japan 10Y Treasury", "Korea 10Y Treasury"]
-        ):
-            lines.append(_format_line(item))
-        lines.append("")
-
-        # [환율]
-        lines.append("[환율]")
-        for item in get_items("exchange", ["USD/KRW", "JPY/KRW"]):
-            lines.append(_format_line(item))
-
-    elif mode == "US":
-        # [해외 증시] (US/EU)
-        lines.append("[해외 증시]")
-        for item in get_items(
-            "indices_overseas", ["S&P 500", "Nasdaq", "Euro Stoxx 50"]
-        ):
-            lines.append(_format_line(item))
-        lines.append("")
-
-        # [변동성]
-        lines.append("[변동성]")
-        for item in get_items("volatility", ["VKOSPI", "VIX"]):
-            lines.append(_format_line(item))
-        lines.append("")
-
-        # [채권, 원자재]
-        lines.append("[채권, 원자재]")
-        for item in get_items(
-            "commodities_rates", ["US 10Y Treasury", "Gold", "Silver", "Copper"]
-        ):
-            lines.append(_format_line(item))
-        lines.append("")
-
-        # [환율]
-        lines.append("[환율]")
-        for item in get_items("exchange", ["USD/KRW", "JPY/KRW"]):
-            lines.append(_format_line(item))
-        lines.append("")
-
-        # [암호화폐]
-        lines.append("[암호화폐]")
-        for item in get_items("crypto", ["Bitcoin", "Ethereum"]):
-            lines.append(_format_line(item))
+        if index < len(sections) - 1:
+            lines.append("")
 
     return "\n".join(lines)
 
 
 if __name__ == "__main__":
-    # Test
     pass

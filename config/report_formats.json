@@ -1,0 +1,66 @@
+{
+  "modes": {
+    "KR": {
+      "description": "Korean market close summary focused on domestic indices, Asia peers, local bond context, and FX.",
+      "summary_sections": [
+        {
+          "title": "국내 증시",
+          "category": "indices_domestic",
+          "items": ["KOSPI", "KOSDAQ"]
+        },
+        {
+          "title": "해외 증시",
+          "category": "indices_overseas",
+          "items": ["Nikkei 225", "Hang Seng", "Shanghai Composite"]
+        },
+        {
+          "title": "변동성",
+          "category": "volatility",
+          "items": ["VKOSPI", "VIX"]
+        },
+        {
+          "title": "채권",
+          "category": "commodities_rates",
+          "items": ["Japan 10Y Treasury", "Korea 10Y Treasury"]
+        },
+        {
+          "title": "환율",
+          "category": "exchange",
+          "items": ["USD/KRW", "JPY/KRW"]
+        }
+      ],
+      "screenshot_targets": ["kospi", "kosdaq"]
+    },
+    "US": {
+      "description": "US market close summary focused on US and European indices, commodities, crypto, and broad risk assets.",
+      "summary_sections": [
+        {
+          "title": "해외 증시",
+          "category": "indices_overseas",
+          "items": ["S&P 500", "Nasdaq", "Euro Stoxx 50"]
+        },
+        {
+          "title": "변동성",
+          "category": "volatility",
+          "items": ["VKOSPI", "VIX"]
+        },
+        {
+          "title": "채권, 원자재",
+          "category": "commodities_rates",
+          "items": ["US 10Y Treasury", "Gold", "Silver", "Copper"]
+        },
+        {
+          "title": "환율",
+          "category": "exchange",
+          "items": ["USD/KRW", "JPY/KRW"]
+        },
+        {
+          "title": "암호화폐",
+          "category": "crypto",
+          "items": ["Bitcoin", "Ethereum"]
+        }
+      ],
+      "screenshot_targets": ["finviz"]
+    }
+  }
+}

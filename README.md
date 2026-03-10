@@ -86,6 +86,17 @@ python src/main.py --market US
 - `--market US`: 미국장 기준 요약 및 Finviz 스크린샷 사용
 - `--market Global` 또는 옵션 생략: 현재 UTC 시간 기준으로 `KR`/`US` 자동 선택
 
+## 리포트 포맷 구성
+
+텔레그램 요약 포맷과 스크린샷 구성은 이제 코드나 GitHub Actions 파일에 하드코딩하지 않고 [`config/report_formats.json`](/home/lys74/DEV/Macro-Pulse/config/report_formats.json)에서 관리합니다.
+
+- 한국장 마감(`KR`) 포맷: 국내 증시를 먼저 보여주고, 이어서 아시아 증시, 변동성, 한일 국채, 환율 순으로 배치합니다.
+- 한국장 마감(`KR`) 스크린샷: `KOSPI`, `KOSDAQ` 히트맵 2장을 첨부합니다.
+- 미국장 마감(`US`) 포맷: 미국/유럽 증시를 먼저 보여주고, 이어서 변동성, 미국채와 원자재, 환율, 암호화폐 순으로 배치합니다.
+- 미국장 마감(`US`) 스크린샷: `Finviz` 맵 1장을 첨부합니다.
+- 포맷 변경 방법: `summary_sections`에서 섹션 제목, 카테고리, 항목 순서를 수정하고 `screenshot_targets`에서 첨부할 스크린샷 종류를 바꾸면 됩니다.
+- GitHub Actions 참조 방식: 워크플로는 `REPORT_FORMAT_CONFIG=config/report_formats.json` 환경 변수로 같은 설정 파일을 읽습니다.
+
 ## 생성 산출물
 
 - `macro_pulse_report.html`: 메인 HTML 리포트
@@ -100,6 +111,7 @@ python src/main.py --market US
 - 화요일-토요일 06:30 KST: 미국장 마감 기준 리포트 실행
 - 월요일-금요일 17:00 KST: 한국장 마감 기준 리포트 실행
 - 수동 실행: `workflow_dispatch`
+- 포맷 설정 파일: `REPORT_FORMAT_CONFIG=config/report_formats.json`
 
 보조 워크플로 `.github/workflows/test_telegram.yml`에서는 `KR` 또는 `US` 모드를 선택해 텔레그램 전송 테스트를 수동 실행할 수 있습니다.
 
@@ -166,6 +178,7 @@ python tests/test_screenshot.py --target kosdaq
 |   |-- notifier.py
 |   `-- screenshot_utils.py
 |-- tests/
+|-- config/
 |-- .github/workflows/
 |-- .env-sample
 |-- SECRETS.md

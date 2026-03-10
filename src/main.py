@@ -1,16 +1,19 @@
-import os
 import argparse
 import asyncio
+import os
+import warnings
+from datetime import datetime, timezone
+
 from data_fetcher import fetch_all_data
+from dotenv import load_dotenv
+from notifier import send_email_report, send_telegram_report
+from report_format_config import get_screenshot_targets, load_report_format_config
 from report_generator import generate_html_report, generate_telegram_summary
-from notifier import send_telegram_report, send_email_report
 from screenshot_utils import (
     take_finviz_screenshot,
     take_kosdaq_screenshot,
     take_kospi_screenshot,
 )
-import warnings
-from dotenv import load_dotenv
 
 # Load .env file
 load_dotenv()
@@ -18,7 +21,12 @@ load_dotenv()
 # Suppress warnings
 warnings.filterwarnings("ignore")
 
-from datetime import datetime, timezone
+
+SCREENSHOT_HANDLERS = {
+    "finviz": take_finviz_screenshot,
+    "kospi": take_kospi_screenshot,
+    "kosdaq": take_kosdaq_screenshot,
+}
 
 
 def resolve_mode(market_arg, now_utc=None):
@@ -45,57 +53,49 @@ async def main():
     args = parser.parse_args()
 
     mode = resolve_mode(args.market)
+    report_format_config = load_report_format_config()
 
     print(f"Starting Macro Pulse Bot (Mode: {mode})...")
 
-    # 1. Fetch Data
     print("Fetching data...")
     data = fetch_all_data()
 
-    # 2. Generate Report
     print("Generating report...")
     html_report = generate_html_report(data)
 
-    # Generate Telegram Summary text
-    telegram_summary = generate_telegram_summary(data, mode)
+    telegram_summary = generate_telegram_summary(data, mode, report_format_config)
     print(f"Telegram Summary ({mode}):\n{telegram_summary}\n")
 
-    # Save locally
     output_path = "macro_pulse_report.html"
-    with open(output_path, "w") as f:
-        f.write(html_report)
+    with open(output_path, "w", encoding="utf-8") as handle:
+        handle.write(html_report)
     print(f"Report saved to {output_path}")
 
     if args.dry_run:
         print("Dry run complete. No notifications sent.")
         return
 
-    # 3. Take Screenshot (Only for US Close / 06:30 KST)
     screenshot_paths = []
-    if mode == "US":
-        print("Taking Finviz screenshot...")
-        screenshot_path = take_finviz_screenshot()
+    screenshot_targets = get_screenshot_targets(mode, report_format_config)
+    if screenshot_targets:
+        print(f"Taking screenshots for targets: {', '.join(screenshot_targets)}")
+
+    for target in screenshot_targets:
+        take_screenshot = SCREENSHOT_HANDLERS.get(target)
+        if not take_screenshot:
+            print(f"Unknown screenshot target in config: {target}")
+            continue
+
+        screenshot_path = take_screenshot()
         if screenshot_path:
             screenshot_paths.append(screenshot_path)
-    elif mode == "KR":
-        print("Taking KOSPI and KOSDAQ screenshots...")
-        for take_screenshot in (take_kospi_screenshot, take_kosdaq_screenshot):
-            screenshot_path = take_screenshot()
-            if screenshot_path:
-                screenshot_paths.append(screenshot_path)
 
-    # 4. Notify
-    # Load secrets from env
     telegram_token = os.environ.get("TELEGRAM_BOT_TOKEN")
     telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
-
     smtp_user = os.environ.get("SMTP_USERNAME")
     smtp_password = os.environ.get("SMTP_PASSWORD")
-    recipient_email = os.environ.get(
-        "RECIPIENT_EMAIL"
-    )  # User can set this or use SMTP_USERNAME
+    recipient_email = os.environ.get("RECIPIENT_EMAIL")
 
-    # Telegram
     if telegram_token and telegram_chat_id:
         await send_telegram_report(
             telegram_token,
@@ -104,7 +104,6 @@ async def main():
             image_paths=screenshot_paths,
         )
 
-    # Email
     if smtp_user and smtp_password:
         target_email = recipient_email if recipient_email else smtp_user
         send_email_report(smtp_user, smtp_password, target_email, html_report)

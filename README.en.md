@@ -86,6 +86,17 @@ python src/main.py --market US
 - `--market US`: US market summary with Finviz screenshot
 - `--market Global` or omitting the option: auto-selects `KR` or `US` from the current UTC time
 
+## Report Format Rules
+
+Telegram summary layout and screenshot composition are now managed in [config/report_formats.json](/home/lys74/DEV/Macro-Pulse/config/report_formats.json) instead of being hardcoded in the workflow or summary code.
+
+- `KR` close format: domestic Korean indices first, then Asia indices, volatility, Japan/Korea government bonds, and FX.
+- `KR` close screenshots: two heatmaps for `KOSPI` and `KOSDAQ`.
+- `US` close format: US and European indices first, then volatility, US Treasury plus commodities, FX, and crypto.
+- `US` close screenshots: one `Finviz` map image.
+- How to customize: edit `summary_sections` to change section titles, categories, and item order, and edit `screenshot_targets` to change which images are attached.
+- GitHub Actions reference: workflows load the same file through `REPORT_FORMAT_CONFIG=config/report_formats.json`.
+
 ## Output Files
 
 - `macro_pulse_report.html`
@@ -101,6 +112,7 @@ The main workflow is defined in `.github/workflows/daily_report.yml`.
 - Tuesday to Saturday, 06:30 KST: run for the US close cycle
 - Monday to Friday, 17:00 KST: run for the Korea close cycle
 - Manual trigger is also enabled with `workflow_dispatch`
+- Format config path: `REPORT_FORMAT_CONFIG=config/report_formats.json`
 
 The companion workflow `.github/workflows/test_telegram.yml` can manually send a test run for either `KR` or `US`.
 
@@ -167,6 +179,7 @@ python tests/test_screenshot.py --target kosdaq
 |   |-- notifier.py
 |   `-- screenshot_utils.py
 |-- tests/
+|-- config/
 |-- .github/workflows/
 |-- .env-sample
 |-- SECRETS.md
