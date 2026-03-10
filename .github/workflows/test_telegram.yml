@@ -1,0 +1,53 @@
+name: Test Telegram Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      market:
+        description: 'Market to send (KR/US)'
+        required: true
+        default: 'KR'
+        type: choice
+        options:
+          - KR
+          - US
+
+jobs:
+  send-test-report:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Telegram report test
+      env:
+        SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        RAPIDAPI_CNBC_KEY: ${{ secrets.RAPIDAPI_CNBC_KEY }}
+      run: |
+        python src/main.py --market ${{ inputs.market }}
+
+    - name: Upload report artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: telegram-test-${{ inputs.market }}
+        path: |
+          macro_pulse_report.html
+          finviz_map.png
+          kospi_map.png
+        if-no-files-found: ignore

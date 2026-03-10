@@ -8,6 +8,14 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 
 
+KOSPI_MAP_URL = "https://markets.hankyung.com/marketmap/kospi"
+KOSPI_MAP_SELECTORS = (
+    "div.map-area div.fiq-marketmap svg.anychart-ui-support",
+    "#map_area.fiq-marketmap svg.anychart-ui-support",
+    "div.map-area svg.anychart-ui-support",
+)
+
+
 def get_chrome_driver():
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")  # Updated headless flag
@@ -27,6 +35,25 @@ def get_chrome_driver():
     except Exception as e:
         print(f"Failed to initialize Chrome Driver: {e}")
         return None
+
+
+def wait_for_first_visible(driver, selectors, timeout=20):
+    wait = WebDriverWait(driver, timeout)
+    last_error = None
+
+    for selector in selectors:
+        try:
+            print(f"Waiting for selector: {selector}")
+            return wait.until(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, selector))
+            )
+        except Exception as exc:
+            last_error = exc
+
+    if last_error:
+        raise last_error
+
+    raise RuntimeError("No selectors provided.")
 
 def take_finviz_screenshot(output_path="finviz_map.png"):
     """
@@ -69,37 +96,30 @@ def take_finviz_screenshot(output_path="finviz_map.png"):
 
 def take_kospi_screenshot(output_path="kospi_map.png"):
     """
-    Takes a screenshot of the KOSPI map from kospd.com
-    (div.plot-container.plotly).
+    Takes a screenshot of the KOSPI heatmap SVG from Hankyung market map.
     """
     driver = get_chrome_driver()
     if not driver:
         return None
 
     try:
-        url = "https://www.kospd.com/maps/1day"
+        url = KOSPI_MAP_URL
         print(f"Navigating to {url}...")
         driver.get(url)
-        
-        # Wait for the map to load
+
         print("Waiting for map element...")
-        wait = WebDriverWait(driver, 20)
-        # Try waiting for main-svg or plot-container
-        element = wait.until(
-            EC.visibility_of_element_located((By.CSS_SELECTOR, "div.plot-container.plotly"))
-        )
-        
-        # Add delay to ensure canvas/svg is rendered
+        element = wait_for_first_visible(driver, KOSPI_MAP_SELECTORS, timeout=20)
+
         print("Waiting for chart to render...")
         time.sleep(5)
-        
-        # Take screenshot of the element
+
         element.screenshot(output_path)
         print(f"Screenshot saved to {output_path}")
         return output_path
-        
+
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         print(f"Failed to take KOSPI screenshot: {e}")
         return None

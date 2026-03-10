@@ -17,26 +17,30 @@ warnings.filterwarnings("ignore")
 from datetime import datetime, timezone
 
 
+def resolve_mode(market_arg, now_utc=None):
+    normalized = (market_arg or "").strip().upper()
+    if normalized in {"KR", "US"}:
+        return normalized
+
+    current_time = now_utc or datetime.now(timezone.utc)
+    hour = current_time.hour
+    return "KR" if 7 <= hour < 20 else "US"
+
+
 async def main():
     parser = argparse.ArgumentParser(description="Macro Pulse Bot")
     parser.add_argument(
         "--dry-run", action="store_true", help="Generate report but do not send"
     )
     parser.add_argument(
-        "--market", type=str, default="Global", help="Market context (US/KR)"
+        "--market",
+        type=str,
+        default="Global",
+        help="Market context override (KR/US). Global uses time-based auto mode.",
     )
     args = parser.parse_args()
 
-    # Determine mode based on Time (if no explicit arg provided or just default)
-    # KR Close (17:00 KST) = 08:00 UTC
-    # US Close (06:00 KST) = 21:00 UTC
-    now_utc = datetime.now(timezone.utc)
-    hour = now_utc.hour
-
-    if 7 <= hour < 20:
-        mode = "KR"
-    else:
-        mode = "US"
+    mode = resolve_mode(args.market)
 
     print(f"Starting Macro Pulse Bot (Mode: {mode})...")
 
