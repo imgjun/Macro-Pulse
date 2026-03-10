@@ -4,13 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'Target to screenshot (finviz/kospi)'
+        description: 'Target to screenshot (finviz/kospi/kosdaq)'
         required: true
         default: 'finviz'
         type: choice
         options:
           - finviz
           - kospi
+          - kosdaq
 
 jobs:
   test-screenshot:

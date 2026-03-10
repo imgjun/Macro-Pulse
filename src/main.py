@@ -4,7 +4,11 @@ import asyncio
 from data_fetcher import fetch_all_data
 from report_generator import generate_html_report, generate_telegram_summary
 from notifier import send_telegram_report, send_email_report
-from screenshot_utils import take_finviz_screenshot, take_kospi_screenshot
+from screenshot_utils import (
+    take_finviz_screenshot,
+    take_kosdaq_screenshot,
+    take_kospi_screenshot,
+)
 import warnings
 from dotenv import load_dotenv
 
@@ -67,13 +71,18 @@ async def main():
         return
 
     # 3. Take Screenshot (Only for US Close / 06:30 KST)
-    screenshot_path = None
+    screenshot_paths = []
     if mode == "US":
         print("Taking Finviz screenshot...")
         screenshot_path = take_finviz_screenshot()
+        if screenshot_path:
+            screenshot_paths.append(screenshot_path)
     elif mode == "KR":
-        print("Taking KOSPI screenshot...")
-        screenshot_path = take_kospi_screenshot()
+        print("Taking KOSPI and KOSDAQ screenshots...")
+        for take_screenshot in (take_kospi_screenshot, take_kosdaq_screenshot):
+            screenshot_path = take_screenshot()
+            if screenshot_path:
+                screenshot_paths.append(screenshot_path)
 
     # 4. Notify
     # Load secrets from env
@@ -92,7 +101,7 @@ async def main():
             telegram_token,
             telegram_chat_id,
             telegram_summary,
-            image_path=screenshot_path,
+            image_paths=screenshot_paths,
         )
 
     # Email

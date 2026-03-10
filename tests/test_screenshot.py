@@ -4,7 +4,11 @@ import os
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-from screenshot_utils import take_finviz_screenshot, take_kospi_screenshot
+from screenshot_utils import (
+    take_finviz_screenshot,
+    take_kosdaq_screenshot,
+    take_kospi_screenshot,
+)
 import argparse
 
 
@@ -17,6 +21,9 @@ def test_screenshot(target="finviz"):
     elif target == "kospi":
         output = "test_kospi.png"
         result = take_kospi_screenshot(output)
+    elif target == "kosdaq":
+        output = "test_kosdaq.png"
+        result = take_kosdaq_screenshot(output)
     else:
         print(f"Unknown target: {target}")
         return
@@ -34,7 +41,12 @@ def test_screenshot(target="finviz"):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--target", default="finviz", choices=["finviz", "kospi"], help="Target website to screenshot")
+    parser.add_argument(
+        "--target",
+        default="finviz",
+        choices=["finviz", "kospi", "kosdaq"],
+        help="Target website to screenshot",
+    )
     args = parser.parse_args()
     
     test_screenshot(target=args.target)

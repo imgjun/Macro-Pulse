@@ -50,4 +50,5 @@ jobs:
           macro_pulse_report.html
           finviz_map.png
           kospi_map.png
+          kosdaq_map.png
         if-no-files-found: ignore

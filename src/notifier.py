@@ -10,6 +10,7 @@ async def send_telegram_report(
     chat_id,
     message_text="Daily Macro Pulse Report",
     image_path=None,
+    image_paths=None,
 ):
     """
     Sends the report to Telegram.
@@ -23,11 +24,17 @@ async def send_telegram_report(
         bot = Bot(token=token)
         await bot.send_message(chat_id=chat_id, text=message_text)
 
-        # Send image if available
-        if image_path and os.path.exists(image_path):
-            with open(image_path, "rb") as img:
-                await bot.send_photo(chat_id=chat_id, photo=img)
-                print(f"Telegram photo sent: {image_path}")
+        photo_paths = []
+        if image_paths:
+            photo_paths.extend(image_paths)
+        elif image_path:
+            photo_paths.append(image_path)
+
+        for photo_path in photo_paths:
+            if photo_path and os.path.exists(photo_path):
+                with open(photo_path, "rb") as img:
+                    await bot.send_photo(chat_id=chat_id, photo=img)
+                    print(f"Telegram photo sent: {photo_path}")
     except Exception as e:
         print(f"Failed to send Telegram message: {e}")
 

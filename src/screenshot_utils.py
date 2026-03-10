@@ -8,11 +8,15 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 
 
-KOSPI_MAP_URL = "https://markets.hankyung.com/marketmap/kospi"
-KOSPI_MAP_SELECTORS = (
-    "div.map-area div.fiq-marketmap svg.anychart-ui-support",
-    "#map_area.fiq-marketmap svg.anychart-ui-support",
-    "div.map-area svg.anychart-ui-support",
+MARKETMAP_URLS = {
+    "kospi": "https://markets.hankyung.com/marketmap/kospi",
+    "kosdaq": "https://markets.hankyung.com/marketmap/kosdaq",
+}
+MARKETMAP_CONTAINER_SELECTORS = (
+    "div.map-area",
+    "#map_area.map-area",
+    "div.fiq-marketmap",
+    "#map_area.fiq-marketmap",
 )
 
 
@@ -55,6 +59,31 @@ def wait_for_first_visible(driver, selectors, timeout=20):
 
     raise RuntimeError("No selectors provided.")
 
+
+def resize_window_for_element(driver, element, min_width=1600, padding=120):
+    dimensions = driver.execute_script(
+        """
+        const el = arguments[0];
+        el.scrollIntoView({block: 'start', inline: 'nearest'});
+        const rect = el.getBoundingClientRect();
+        return {
+            width: Math.ceil(Math.max(rect.width, el.scrollWidth, el.clientWidth)),
+            height: Math.ceil(Math.max(rect.height, el.scrollHeight, el.clientHeight)),
+        };
+        """,
+        element,
+    )
+
+    width = max(min_width, dimensions["width"] + 40)
+    height = max(1200, dimensions["height"] + padding)
+    print(f"Resizing window to {width}x{height} for element capture...")
+    driver.set_window_size(width, height)
+    driver.execute_script(
+        "arguments[0].scrollIntoView({block: 'start', inline: 'nearest'});", element
+    )
+    time.sleep(2)
+
+
 def take_finviz_screenshot(output_path="finviz_map.png"):
     """
     Takes a screenshot of the Finviz map (#canvas-wrapper).
@@ -94,24 +123,42 @@ def take_finviz_screenshot(output_path="finviz_map.png"):
         if "driver" in locals() and driver:
             driver.quit()
 
+
 def take_kospi_screenshot(output_path="kospi_map.png"):
     """
     Takes a screenshot of the KOSPI heatmap SVG from Hankyung market map.
+    """
+    return take_hankyung_marketmap_screenshot("kospi", output_path)
+
+
+def take_kosdaq_screenshot(output_path="kosdaq_map.png"):
+    """
+    Takes a screenshot of the KOSDAQ heatmap from Hankyung market map.
+    """
+    return take_hankyung_marketmap_screenshot("kosdaq", output_path)
+
+
+def take_hankyung_marketmap_screenshot(market, output_path):
+    """
+    Takes a screenshot of the requested Hankyung market map container.
     """
     driver = get_chrome_driver()
     if not driver:
         return None
 
     try:
-        url = KOSPI_MAP_URL
+        url = MARKETMAP_URLS[market]
         print(f"Navigating to {url}...")
         driver.get(url)
 
         print("Waiting for map element...")
-        element = wait_for_first_visible(driver, KOSPI_MAP_SELECTORS, timeout=20)
+        element = wait_for_first_visible(
+            driver, MARKETMAP_CONTAINER_SELECTORS, timeout=20
+        )
 
         print("Waiting for chart to render...")
         time.sleep(5)
+        resize_window_for_element(driver, element)
 
         element.screenshot(output_path)
         print(f"Screenshot saved to {output_path}")
@@ -121,7 +168,7 @@ def take_kospi_screenshot(output_path="kospi_map.png"):
         import traceback
 
         traceback.print_exc()
-        print(f"Failed to take KOSPI screenshot: {e}")
+        print(f"Failed to take {market.upper()} screenshot: {e}")
         return None
     finally:
         if "driver" in locals() and driver:
