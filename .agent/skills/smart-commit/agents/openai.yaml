@@ -1,0 +1,4 @@
+interface:
+  display_name: "Smart Commit"
+  short_description: "Automatically format, split, commit, and push repo changes"
+  default_prompt: "Use this skill automatically when completed work in this repository leaves tracked file changes ready to commit and push."
