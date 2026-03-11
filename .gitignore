@@ -12,3 +12,6 @@ kosdaq_map.png
 .venv/
 .venv/
 test_report.html
+AGENTS.md
+agent.md
+.agent/

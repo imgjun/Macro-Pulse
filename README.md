@@ -1,4 +1,4 @@
-**Language:** **한국어** | [English](README.en.md)
+**Language:** **한국어** | [English](docs/README.en.md)
 
 # Macro Pulse Bot
 
@@ -74,6 +74,8 @@ Macro Pulse Bot은 주요 거시경제 지표를 수집해 HTML 리포트를 만
 ## GitHub Secrets
 
 GitHub Actions에서 사용하려면 저장소의 `Settings > Secrets and variables > Actions`에 아래 값을 등록합니다.
+
+간단한 설명은 [docs/SECRETS.md](docs/SECRETS.md)에서 확인할 수 있습니다.
 
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
@@ -176,14 +178,21 @@ python tests/test_screenshot.py --target kosdaq
 |   |-- frankfurter_fetcher.py
 |   |-- cnbc_fetcher.py
 |   |-- report_generator.py
+|   |-- report_format_config.py
+|   |-- artifact_utils.py
 |   |-- notifier.py
-|   `-- screenshot_utils.py
+|   |-- screenshot_utils.py
+|   `-- templates/report.html
 |-- tests/
 |-- config/
+|-- docs/
+|   |-- README.en.md
+|   `-- SECRETS.md
+|-- imgs/
 |-- .github/workflows/
 |-- .env-sample
-|-- SECRETS.md
-`-- README.en.md
+|-- main.py
+`-- README.md
 ```
 
 ## 문제 해결
@@ -193,4 +202,3 @@ python tests/test_screenshot.py --target kosdaq
 - 이메일 전송 실패: Gmail SMTP 사용 기준으로 앱 비밀번호가 필요합니다.
 - 환율 또는 지수 데이터 누락: Yahoo Finance, Frankfurter, CNBC 응답 실패 시 일부 항목이 비어 있을 수 있습니다.
 - GitHub Pages가 갱신되지 않음: `gh-pages` 브랜치가 Pages 배포 대상으로 선택되어 있는지 확인하세요.
-
