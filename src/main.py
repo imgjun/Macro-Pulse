@@ -4,6 +4,7 @@ import os
 import warnings
 from datetime import datetime, timezone
 
+from artifact_utils import cleanup_files
 from data_fetcher import fetch_all_data
 from dotenv import load_dotenv
 from notifier import send_email_report, send_telegram_report
@@ -90,23 +91,26 @@ async def main():
         if screenshot_path:
             screenshot_paths.append(screenshot_path)
 
-    telegram_token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
-    smtp_user = os.environ.get("SMTP_USERNAME")
-    smtp_password = os.environ.get("SMTP_PASSWORD")
-    recipient_email = os.environ.get("RECIPIENT_EMAIL")
+    try:
+        telegram_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+        telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+        smtp_user = os.environ.get("SMTP_USERNAME")
+        smtp_password = os.environ.get("SMTP_PASSWORD")
+        recipient_email = os.environ.get("RECIPIENT_EMAIL")
 
-    if telegram_token and telegram_chat_id:
-        await send_telegram_report(
-            telegram_token,
-            telegram_chat_id,
-            telegram_summary,
-            image_paths=screenshot_paths,
-        )
+        if telegram_token and telegram_chat_id:
+            await send_telegram_report(
+                telegram_token,
+                telegram_chat_id,
+                telegram_summary,
+                image_paths=screenshot_paths,
+            )
 
-    if smtp_user and smtp_password:
-        target_email = recipient_email if recipient_email else smtp_user
-        send_email_report(smtp_user, smtp_password, target_email, html_report)
+        if smtp_user and smtp_password:
+            target_email = recipient_email if recipient_email else smtp_user
+            send_email_report(smtp_user, smtp_password, target_email, html_report)
+    finally:
+        cleanup_files(screenshot_paths)
 
 
 if __name__ == "__main__":

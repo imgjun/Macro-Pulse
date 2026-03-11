@@ -41,14 +41,11 @@ jobs:
       run: |
         python src/main.py --market ${{ inputs.market }}
 
-    - name: Upload report artifacts
+    - name: Upload report artifact
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: telegram-test-${{ inputs.market }}
         path: |
           macro_pulse_report.html
-          finviz_map.png
-          kospi_map.png
-          kosdaq_map.png
         if-no-files-found: ignore

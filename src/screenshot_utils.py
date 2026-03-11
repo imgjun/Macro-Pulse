@@ -7,6 +7,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 
+from artifact_utils import resolve_output_path
+
 
 MARKETMAP_URLS = {
     "kospi": "https://markets.hankyung.com/marketmap/kospi",
@@ -154,7 +156,7 @@ def position_element_for_capture(driver, element, top_offset=160):
     time.sleep(1)
 
 
-def take_finviz_screenshot(output_path="finviz_map.png"):
+def take_finviz_screenshot(output_path=None):
     """
     Takes a screenshot of the Finviz map (#canvas-wrapper).
     """
@@ -163,6 +165,7 @@ def take_finviz_screenshot(output_path="finviz_map.png"):
         return None
 
     try:
+        output_path = resolve_output_path(output_path, "finviz_map")
         url = "https://finviz.com/map.ashx"
         print(f"Navigating to {url}...")
         driver.get(url)
@@ -194,14 +197,14 @@ def take_finviz_screenshot(output_path="finviz_map.png"):
             driver.quit()
 
 
-def take_kospi_screenshot(output_path="kospi_map.png"):
+def take_kospi_screenshot(output_path=None):
     """
     Takes a screenshot of the KOSPI heatmap SVG from Hankyung market map.
     """
     return take_hankyung_marketmap_screenshot("kospi", output_path)
 
 
-def take_kosdaq_screenshot(output_path="kosdaq_map.png"):
+def take_kosdaq_screenshot(output_path=None):
     """
     Takes a screenshot of the KOSDAQ heatmap from Hankyung market map.
     """
@@ -217,6 +220,7 @@ def take_hankyung_marketmap_screenshot(market, output_path):
         return None
 
     try:
+        output_path = resolve_output_path(output_path, f"{market}_map")
         url = MARKETMAP_URLS[market]
 
         for attempt in range(2):

@@ -26,7 +26,7 @@ Macro Pulse Bot은 주요 거시경제 지표를 수집해 HTML 리포트를 만
 1. `src/data_fetcher.py`가 Yahoo Finance, Frankfurter, CNBC에서 데이터를 수집합니다.
 2. `src/report_generator.py`가 HTML 리포트와 텔레그램 요약 메시지를 생성합니다.
 3. `src/main.py`가 리포트를 `macro_pulse_report.html`로 저장합니다.
-4. `--dry-run`이 아니면 시장 모드에 맞는 스크린샷을 생성하고, 텔레그램/이메일 전송을 시도합니다.
+4. `--dry-run`이 아니면 시장 모드에 맞는 스크린샷을 임시 파일로 생성해 전송에 사용하고, 작업이 끝나면 정리합니다.
 
 ## 요구 사항
 
@@ -57,9 +57,8 @@ Macro Pulse Bot은 주요 거시경제 지표를 수집해 HTML 리포트를 만
 ## 생성 산출물
 
 - `macro_pulse_report.html`: 메인 HTML 리포트
-- `finviz_map.png`: `US` 모드 스크린샷
-- `kospi_map.png`, `kosdaq_map.png`: `KR` 모드 스크린샷
 - `public/index.html`: GitHub Pages 배포용 리포트 파일
+- 스크린샷 PNG: 텔레그램 전송용 임시 파일로만 생성되며 리포지터리 루트에는 저장하지 않음
 
 ## GitHub Actions
 

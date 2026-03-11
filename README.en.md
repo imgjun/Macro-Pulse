@@ -26,7 +26,7 @@ Macro Pulse Bot collects key macro market indicators, builds an HTML report, and
 1. `src/data_fetcher.py` pulls market data from Yahoo Finance, Frankfurter, and CNBC.
 2. `src/report_generator.py` builds the HTML report and Telegram summary text.
 3. `src/main.py` writes the result to `macro_pulse_report.html`.
-4. Unless `--dry-run` is used, it captures screenshots for the active market mode and sends notifications.
+4. Unless `--dry-run` is used, it creates temporary screenshots for the active market mode, uses them for delivery, and removes them afterward.
 
 ## Requirements
 
@@ -110,10 +110,8 @@ Telegram summary layout and screenshot composition are now managed in [config/re
 ## Output Files
 
 - `macro_pulse_report.html`
-- `finviz_map.png`
-- `kospi_map.png`
-- `kosdaq_map.png`
 - `public/index.html`
+- Screenshot PNGs are created only as temporary delivery artifacts and are not stored in the repository root
 
 ## GitHub Actions
 

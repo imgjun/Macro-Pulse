@@ -6,6 +6,9 @@ venv/
 .env
 .DS_Store
 macro_pulse_report.html
+finviz_map.png
+kospi_map.png
+kosdaq_map.png
 .venv/
 .venv/
 test_report.html
