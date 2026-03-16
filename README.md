@@ -58,7 +58,7 @@ Macro Pulse Bot은 주요 거시경제 지표를 수집해 HTML 리포트를 만
 
 - `macro_pulse_report.html`: 메인 HTML 리포트
 - `public/index.html`: GitHub Pages 배포용 리포트 파일
-- 스크린샷 PNG: 텔레그램 전송용 임시 파일로만 생성되며 리포지터리 루트에는 저장하지 않음
+- 스크린샷 PNG: 텔레그램 전송에만 생성되며 저장소에는 기록하지 않음
 
 ## GitHub Actions
 
