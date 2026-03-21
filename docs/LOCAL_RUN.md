@@ -4,7 +4,7 @@
 
 이 문서는 Macro Pulse Bot을 내 컴퓨터에서 직접 실행하는 방법을 정리한 문서입니다.
 
-## 1. Python으로 실행하기
+## 1. Python 실행
 
 ### 설치
 
@@ -53,7 +53,7 @@ python3 src/main.py --market US
 - `US`: 미국장 기준
 - 옵션을 빼면 UTC 시간을 기준으로 자동 선택합니다.
 
-## 2. Docker로 실행하기
+## 2. Docker 실행
 
 ### 이미지 빌드
 
@@ -88,7 +88,7 @@ docker run --rm \
 - `macro_pulse_report.html`: 생성된 HTML 리포트
 - 스크린샷 PNG: 전송용 임시 파일
 
-## 4. 자주 생기는 문제
+## 4. 문제 해결
 
 - 스크린샷이 실패하면 Chrome/Chromium 실행 환경을 확인하세요.
 - 텔레그램이 오지 않으면 `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`를 다시 확인하세요.

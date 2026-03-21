@@ -4,7 +4,7 @@
 
 This document explains how to run Macro Pulse Bot on your own machine.
 
-## 1. Run with Python
+## 1. Python
 
 ### Install
 
@@ -53,7 +53,7 @@ python3 src/main.py --market US
 - `US`: US market mode
 - If you omit the option, the app auto-selects from current UTC time.
 
-## 2. Run with Docker
+## 2. Docker
 
 ### Build the image
 
@@ -88,7 +88,7 @@ docker run --rm \
 - `macro_pulse_report.html`: generated HTML report
 - Screenshot PNGs: temporary files used only for delivery
 
-## 4. Common Issues
+## 4. Troubleshooting
 
 - If screenshots fail, check your Chrome/Chromium setup.
 - If Telegram messages do not arrive, re-check `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.

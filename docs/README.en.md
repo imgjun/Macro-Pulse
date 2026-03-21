@@ -11,7 +11,7 @@ Macro Pulse Bot is an automation project that collects market data and turns it 
 
 If you are not familiar with finance, the easiest way to think about it is: "a bot that collects important market numbers and summarizes them."
 
-## What does it do?
+## Features
 
 - Builds a report for either the Korean market (`KR`) or US market (`US`)
 - Collects indices, FX, bond yields, commodities, and crypto data
@@ -20,7 +20,7 @@ If you are not familiar with finance, the easiest way to think about it is: "a b
   - `KR`: KOSPI / KOSDAQ heatmaps
   - `US`: Finviz market map
 
-## How does it work?
+## Flow
 
 The flow is simple.
 
@@ -31,7 +31,7 @@ The flow is simple.
 
 The real entry point is [`src/main.py`](../src/main.py).
 
-## What data is included?
+## Covered Data
 
 - Korean indices: `KOSPI`, `KOSDAQ`
 - Overseas indices: `S&P 500`, `Nasdaq`, `Nikkei 225`, and more
@@ -40,7 +40,7 @@ The real entry point is [`src/main.py`](../src/main.py).
 - Crypto: `Bitcoin`, `Ethereum`
 - Volatility: `VIX`, `VKOSPI`
 
-## Run automatically with GitHub Actions
+## GitHub Actions
 
 This repository already includes GitHub Actions workflows.
 
@@ -51,7 +51,7 @@ This repository already includes GitHub Actions workflows.
 
 If you need the required secrets, see [`SECRETS.md`](SECRETS.md).
 
-## Want to change the report format?
+## Format Settings
 
 You can edit [`config/report_formats.json`](../config/report_formats.json).
 
