@@ -2,50 +2,142 @@
 
 # Macro Pulse Bot
 
-Macro Pulse Bot은 주요 거시경제 지표를 수집해 HTML 리포트를 만들고, 텔레그램 및 이메일로 전달하는 자동화 봇입니다. 기본 실행 시 현재 UTC 시간을 기준으로 국장(`KR`) 또는 미장(`US`) 모드를 자동 선택하며, GitHub Actions를 통해 정기 실행할 수 있습니다.
+Macro Pulse Bot은 시장 데이터를 모아서 한 장의 리포트로 만들어 주는 자동화 프로젝트입니다.
 
-## 주요 기능
+- 주요 지표를 수집합니다.
+- HTML 리포트를 만듭니다.
+- 텔레그램과 이메일로 보낼 수 있습니다.
+- GitHub Actions로 정해진 시간에 자동 실행할 수 있습니다.
 
-- Yahoo Finance, Frankfurter, CNBC 데이터를 결합해 시장 데이터를 수집합니다.
-- 일간 변동률과 최근 7개 구간 추이를 포함한 HTML 리포트를 생성합니다.
-- `KR` 모드에서는 KOSPI/KOSDAQ 히트맵, `US` 모드에서는 Finviz 맵 스크린샷을 함께 전송합니다.
-- 텔레그램 메시지 전송을 지원하며, SMTP 설정 시 이메일 발송도 가능합니다.
-- dataclass 기반 데이터 모델과 통합 로깅으로 데이터 흐름을 명시적으로 관리합니다.
-- Docker 이미지를 기준으로 로컬 실행과 GitHub Actions 런타임을 맞춥니다.
-- GitHub Actions에서 스케줄 실행 후 최신 리포트를 GitHub Pages에 배포하고, artifact 업로드 및 실패 알림을 보냅니다.
+복잡한 금융 지식을 몰라도, "데이터를 모아서 보기 좋게 정리해 주는 봇"이라고 생각하면 됩니다.
 
-## 수집 항목
+## 무엇을 해주나요?
+
+- 한국장(`KR`) 또는 미국장(`US`) 기준으로 리포트를 만듭니다.
+- 주가지수, 환율, 금리, 원자재, 비트코인 같은 지표를 모읍니다.
+- 텔레그램용 짧은 요약과 HTML 리포트를 함께 만듭니다.
+- 시장 분위기를 보기 위한 스크린샷도 붙일 수 있습니다.
+  - `KR`: KOSPI / KOSDAQ 히트맵
+  - `US`: Finviz 맵
+
+## 어떻게 동작하나요?
+
+흐름은 단순합니다.
+
+1. Yahoo Finance, Frankfurter, CNBC에서 데이터를 가져옵니다.
+2. 가져온 데이터를 정리합니다.
+3. HTML 리포트와 텔레그램 요약 문구를 만듭니다.
+4. 필요하면 텔레그램/이메일로 전송합니다.
+
+실제 실행 파일은 [`src/main.py`](src/main.py)입니다.
+
+## 어떤 데이터가 들어가나요?
 
 - 국내 지수: `KOSPI`, `KOSDAQ`
-- 해외 지수: `S&P 500`, `Nasdaq`, `Euro Stoxx 50`, `Nikkei 225`, `Hang Seng`, `Shanghai Composite`
-- 원자재/금리: `Gold`, `Silver`, `Copper`, `US 10Y Treasury`, `Japan 10Y Treasury`, `Korea 10Y Treasury`
+- 해외 지수: `S&P 500`, `Nasdaq`, `Nikkei 225` 등
+- 금리/원자재: `US 10Y Treasury`, `Gold`, `Silver`, `Copper`
 - 환율: `USD/KRW`, `JPY/KRW`, `EUR/KRW`, `CNY/KRW`
 - 가상자산: `Bitcoin`, `Ethereum`
 - 변동성: `VIX`, `VKOSPI`
 
-## 동작 방식
+## 빠르게 실행해보기
 
-1. `src/data_fetcher.py`가 Yahoo Finance, Frankfurter, CNBC에서 데이터를 수집합니다.
-2. 수집 결과는 dataclass 모델로 정규화되어 후속 단계로 전달됩니다.
-3. `src/report_generator.py`가 원본 데이터를 mutate하지 않고 HTML 리포트와 텔레그램 요약 메시지를 생성합니다.
-4. `src/main.py`가 리포트를 `macro_pulse_report.html`로 저장합니다.
-5. `--dry-run`이 아니면 시장 모드에 맞는 스크린샷을 임시 파일로 생성해 전송에 사용하고, 작업이 끝나면 정리합니다.
+### 1. 설치
 
-## 요구 사항
+```bash
+python3 -m pip install -r requirements.txt
+```
 
-- 텔레그램 전송용 Bot Token 및 Chat ID
-- GitHub Actions, Secrets 및 Pages 설정
+### 2. 환경 변수 준비
 
-## 리포트 포맷 구성
+루트 폴더에 `.env` 파일을 만들고 아래 값을 넣습니다.
 
-텔레그램 요약 포맷과 스크린샷 구성은 [`config/report_formats.json`](config/report_formats.json)에서 관리합니다.
+```ini
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
 
-- 국장 마감(`KR`) 포맷: 국내 증시를 먼저 보여주고, 이어서 아시아 증시, 변동성, 한일 국채, 환율 순으로 배치합니다.
-- 국장 마감(`KR`) 스크린샷: `KOSPI`, `KOSDAQ` 히트맵 2장을 첨부합니다.
-- 미장 마감(`US`) 포맷: 미국/유럽 증시를 먼저 보여주고, 이어서 변동성, 미국채와 원자재, 환율, 암호화폐 순으로 배치합니다.
-- 미장 마감(`US`) 스크린샷: `Finviz` 맵 1장을 첨부합니다.
-- 포맷 변경 방법: `summary_sections`에서 섹션 제목, 카테고리, 항목 순서를 수정하고 `screenshot_targets`에서 첨부할 스크린샷 종류를 바꾸면 됩니다.
-- GitHub Actions 참조 방식: 워크플로는 `REPORT_FORMAT_CONFIG=config/report_formats.json` 환경 변수로 같은 설정 파일을 읽습니다.
+SMTP_USERNAME=your_email@gmail.com
+SMTP_PASSWORD=your_app_password_here
+RECIPIENT_EMAIL=recipient_email@example.com
+```
+
+- 텔레그램 값이 없으면 텔레그램 전송은 건너뜁니다.
+- 이메일 값이 없으면 이메일 전송은 건너뜁니다.
+
+### 3. 리포트만 생성
+
+```bash
+python3 src/main.py --dry-run
+```
+
+실행 후 `macro_pulse_report.html` 파일이 만들어집니다.
+
+### 4. 실제 전송까지 실행
+
+```bash
+python3 src/main.py
+```
+
+### 5. 시장 모드 직접 고르기
+
+```bash
+python3 src/main.py --market KR
+python3 src/main.py --market US
+```
+
+- `KR`: 한국장 기준
+- `US`: 미국장 기준
+- 옵션을 빼면 현재 UTC 시간을 기준으로 자동 선택합니다.
+
+## Docker로 실행하기
+
+로컬 환경과 GitHub Actions 환경을 비슷하게 맞추고 싶다면 Docker를 사용할 수 있습니다.
+
+```bash
+docker build -t macro-pulse .
+docker run --rm --env-file .env -v "$PWD:/app" -w /app macro-pulse python src/main.py --dry-run
+```
+
+## GitHub Actions로 자동 실행하기
+
+이 저장소는 GitHub Actions를 사용합니다.
+
+- 정해진 시간에 자동으로 리포트를 만듭니다.
+- 최신 리포트를 GitHub Pages에 올릴 수 있습니다.
+- 실행 로그와 결과 파일을 artifact로 저장합니다.
+- 실패하면 Telegram으로 알림을 보내도록 설정할 수 있습니다.
+
+설정이 필요하면 [`docs/SECRETS.md`](docs/SECRETS.md)를 같이 보면 됩니다.
+
+## 포맷을 바꾸고 싶다면
+
+텔레그램 요약 순서나 스크린샷 종류는 [`config/report_formats.json`](config/report_formats.json)에서 바꿀 수 있습니다.
+
+- 어떤 섹션을 먼저 보여줄지
+- 어떤 항목을 포함할지
+- 어떤 스크린샷을 붙일지
+
+코드를 몰라도 JSON만 조금 수정하면 순서를 바꿀 수 있습니다.
+
+## 테스트
+
+기본 테스트:
+
+```bash
+python3 -m unittest discover tests
+```
+
+실제 외부 서비스까지 확인하는 스모크 테스트:
+
+```bash
+RUN_LIVE_SMOKE_TESTS=1 python3 -m unittest discover tests
+```
+
+스크린샷 스모크 테스트:
+
+```bash
+RUN_SCREENSHOT_SMOKE_TESTS=1 python3 -m unittest tests.test_screenshot
+```
 
 ## 스크린샷 예시
 
@@ -57,173 +149,17 @@ Macro Pulse Bot은 주요 거시경제 지표를 수집해 HTML 리포트를 만
 
 ![국장 마감 보고서 예시](imgs/kr.png)
 
-## 생성 산출물
+## 자주 보는 파일
 
-- `macro_pulse_report.html`: 메인 HTML 리포트
-- `public/index.html`: GitHub Pages 배포용 리포트 파일
-- `macro-pulse.log`, `unit-test.log`: GitHub Actions artifact로 업로드되는 실행/테스트 로그
-- 스크린샷 PNG: 텔레그램 전송에만 생성되며 저장소에는 기록하지 않음
-
-## GitHub Actions
-
-기본 워크플로는 `.github/workflows/daily_report.yml`에 정의되어 있습니다.
-
-- `.github/workflows/ci.yml`: pull request / push 시 Docker 이미지로 unit test 실행
-- 화요일-토요일 06:30 KST: 미장 마감 기준 리포트 실행
-- 월요일-금요일 17:00 KST: 국장 마감 기준 리포트 실행
-- 수동 실행: `workflow_dispatch`
-- 포맷 설정 파일: `REPORT_FORMAT_CONFIG=config/report_formats.json`
-- 스케줄 워크플로는 Docker 이미지 빌드 후 같은 이미지에서 테스트와 본 실행을 모두 수행합니다.
-- 리포트 HTML과 실행 로그는 artifact로 업로드됩니다.
-- 실패 시 Telegram Bot Secret이 설정되어 있으면 실행 링크를 포함한 실패 알림을 전송합니다.
-
-보조 워크플로 `.github/workflows/test_telegram.yml`에서는 `KR` 또는 `US` 모드를 선택해 텔레그램 전송 테스트를 수동 실행할 수 있습니다.
-
-## GitHub Secrets
-
-GitHub Actions에서 사용하려면 저장소의 `Settings > Secrets and variables > Actions`에 아래 값을 등록합니다.
-
-간단한 설명은 [docs/SECRETS.md](docs/SECRETS.md)에서 확인할 수 있습니다.
-
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
-- `SMTP_USERNAME` (선택)
-- `SMTP_PASSWORD` (선택)
-- `RECIPIENT_EMAIL` (선택)
-
-## GitHub Pages
-
-최신 리포트를 웹에서 보려면 GitHub Pages를 활성화해야 합니다.
-
-1. 저장소의 `Settings > Pages`로 이동합니다.
-2. 배포 브랜치를 `gh-pages`로 설정합니다.
-3. 배포 후 리포트는 `https://<your-username>.github.io/Macro-Pulse/` 형태의 주소에서 확인할 수 있습니다.
-
-## 로컬 설치
-
-```bash
-# Python 3.12 이상
-python3 -m pip install -r requirements.txt
-```
-
-Docker 기준 실행:
-
-```bash
-docker build -t macro-pulse .
-```
-
-## 환경 변수 설정
-
-루트 디렉터리에 `.env` 파일을 만들고 아래 값을 채워 넣습니다.
-
-```ini
-# Telegram Config
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-TELEGRAM_CHAT_ID=your_chat_id_here
-
-# Email Config (optional)
-SMTP_USERNAME=your_email@gmail.com
-SMTP_PASSWORD=your_app_password_here
-RECIPIENT_EMAIL=recipient_email@example.com
-```
-
-- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`가 없으면 텔레그램 전송은 건너뜁니다.
-- `SMTP_USERNAME`, `SMTP_PASSWORD`가 없으면 이메일 전송은 건너뜁니다.
-- `RECIPIENT_EMAIL`이 비어 있으면 `SMTP_USERNAME` 주소로 전송합니다.
-
-
-## 로컬 실행
-
-리포트만 생성:
-
-```bash
-python3 src/main.py --dry-run
-```
-
-자동 모드로 실행 후 전송:
-
-```bash
-python3 src/main.py
-```
-
-시장 모드 강제 지정:
-
-```bash
-python3 src/main.py --market KR
-python3 src/main.py --market US
-```
-
-- `--market KR`: 국장 기준 요약 및 KOSPI/KOSDAQ 스크린샷 사용
-- `--market US`: 미장 기준 요약 및 Finviz 스크린샷 사용
-- `--market Global` 또는 옵션 생략: 현재 UTC 시간 기준으로 `KR`/`US` 자동 선택
-
-Docker로 dry-run 실행:
-
-```bash
-docker run --rm \
-  --env-file .env \
-  -v "$PWD:/app" \
-  -w /app \
-  macro-pulse \
-  python src/main.py --dry-run
-```
-
-## 테스트
-
-기본 테스트 실행:
-
-```bash
-python3 -m unittest discover tests
-```
-
-라이브 스모크 테스트 실행:
-
-```bash
-RUN_LIVE_SMOKE_TESTS=1 python3 -m unittest discover tests
-```
-
-스크린샷 스모크 테스트 실행:
-
-```bash
-RUN_SCREENSHOT_SMOKE_TESTS=1 python3 -m unittest tests.test_screenshot
-```
-
-`RUN_LIVE_SMOKE_TESTS=1`은 실제 외부 서비스에 요청을 보내므로 네트워크 상태와 외부 사이트 응답에 따라 테스트가 달라질 수 있습니다.
-
-## 디렉터리 구조
-
-```text
-.
-|-- src/
-|   |-- main.py
-|   |-- data_fetcher.py
-|   |-- frankfurter_fetcher.py
-|   |-- cnbc_fetcher.py
-|   |-- models.py
-|   |-- logging_utils.py
-|   |-- report_generator.py
-|   |-- report_format_config.py
-|   |-- artifact_utils.py
-|   |-- notifier.py
-|   |-- screenshot_utils.py
-|   `-- templates/report.html
-|-- tests/
-|-- config/
-|-- docs/
-|   |-- README.en.md
-|   `-- SECRETS.md
-|-- imgs/
-|-- .github/workflows/
-|-- Dockerfile
-|-- .dockerignore
-|-- .env-sample
-`-- README.md
-```
+- [`src/main.py`](src/main.py): 전체 실행 시작점
+- [`src/data_fetcher.py`](src/data_fetcher.py): 데이터 수집
+- [`src/report_generator.py`](src/report_generator.py): 리포트 생성
+- [`src/notifier.py`](src/notifier.py): 텔레그램/이메일 전송
+- [`config/report_formats.json`](config/report_formats.json): 요약 포맷 설정
 
 ## 문제 해결
 
-- 스크린샷 생성 실패: Chrome/Chromium 실행 환경과 외부 사이트 접근 가능 여부를 확인하세요.
-- 텔레그램 메시지가 오지 않음: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` 값을 다시 확인하세요.
-- 이메일 전송 실패: Gmail SMTP 사용 기준으로 앱 비밀번호가 필요합니다.
-- 환율 또는 지수 데이터 누락: Yahoo Finance, Frankfurter, CNBC 응답 실패 시 일부 항목이 비어 있을 수 있습니다.
-- GitHub Pages가 갱신되지 않음: `gh-pages` 브랜치가 Pages 배포 대상으로 선택되어 있는지 확인하세요.
+- 스크린샷이 실패하면 Chrome/Chromium 실행 환경을 먼저 확인하세요.
+- 텔레그램 메시지가 안 오면 `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`를 확인하세요.
+- 일부 데이터가 비어 있으면 외부 사이트 응답 문제일 수 있습니다.
+- GitHub Pages가 안 보이면 `gh-pages` 설정을 확인하세요.

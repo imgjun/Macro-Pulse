@@ -2,50 +2,144 @@
 
 # Macro Pulse Bot
 
-Macro Pulse Bot collects major macroeconomic indicators, builds an HTML report, and delivers it through Telegram and email. By default it automatically selects either `KR` or `US` mode based on the current UTC time, and it can run on a schedule through GitHub Actions.
+Macro Pulse Bot is an automation project that collects market data and turns it into a simple daily report.
 
-## Features
+- It gathers market data.
+- It creates an HTML report.
+- It can send the result to Telegram or email.
+- It can run automatically with GitHub Actions.
 
-- Combines Yahoo Finance, Frankfurter, and CNBC data sources.
-- Generates an HTML report with daily changes and recent trend history.
-- Sends KOSPI/KOSDAQ heatmap screenshots in `KR` mode and a Finviz heatmap screenshot in `US` mode.
-- Supports Telegram delivery and optional SMTP email delivery.
-- Uses typed dataclass models and centralized logging across the pipeline.
-- Aligns local and CI runtime with a shared Docker image.
-- Can publish the latest report to GitHub Pages after scheduled runs, upload artifacts, and send failure notifications.
+If you are not familiar with finance, the easiest way to think about it is: "a bot that collects important market numbers and summarizes them."
 
-## Covered Data
+## What does it do?
 
-- Domestic indices: `KOSPI`, `KOSDAQ`
-- Overseas indices: `S&P 500`, `Nasdaq`, `Euro Stoxx 50`, `Nikkei 225`, `Hang Seng`, `Shanghai Composite`
-- Commodities and rates: `Gold`, `Silver`, `Copper`, `US 10Y Treasury`, `Japan 10Y Treasury`, `Korea 10Y Treasury`
+- Builds a report for either the Korean market (`KR`) or US market (`US`)
+- Collects indices, FX, bond yields, commodities, and crypto data
+- Creates both a short Telegram summary and a full HTML report
+- Optionally attaches screenshots for quick visual context
+  - `KR`: KOSPI / KOSDAQ heatmaps
+  - `US`: Finviz market map
+
+## How does it work?
+
+The flow is simple.
+
+1. Fetch data from Yahoo Finance, Frankfurter, and CNBC.
+2. Clean up and organize the data.
+3. Create an HTML report and Telegram summary text.
+4. Optionally send the result by Telegram or email.
+
+The real entry point is [`src/main.py`](../src/main.py).
+
+## What data is included?
+
+- Korean indices: `KOSPI`, `KOSDAQ`
+- Overseas indices: `S&P 500`, `Nasdaq`, `Nikkei 225`, and more
+- Rates and commodities: `US 10Y Treasury`, `Gold`, `Silver`, `Copper`
 - FX: `USD/KRW`, `JPY/KRW`, `EUR/KRW`, `CNY/KRW`
 - Crypto: `Bitcoin`, `Ethereum`
 - Volatility: `VIX`, `VKOSPI`
 
-## How It Works
+## Quick Start
 
-1. `src/data_fetcher.py` pulls market data from Yahoo Finance, Frankfurter, and CNBC.
-2. The fetched payload is normalized into dataclass models before rendering.
-3. `src/report_generator.py` builds the HTML report and Telegram summary text without mutating the original input data.
-4. `src/main.py` writes the result to `macro_pulse_report.html`.
-5. Unless `--dry-run` is used, it creates temporary screenshots for the active market mode, uses them for delivery, and removes them afterward.
+### 1. Install
 
-## Requirements
+```bash
+python3 -m pip install -r requirements.txt
+```
 
-- Telegram bot token and chat ID for Telegram delivery
-- GitHub Actions, Secrets, and Pages configuration
+### 2. Prepare `.env`
 
-## Report Format Rules
+Create a `.env` file in the project root.
 
-Telegram summary formats and screenshot composition are managed in [`../config/report_formats.json`](../config/report_formats.json).
+```ini
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
 
-- `KR` close format: shows Korean indices first, followed by Asian indices, volatility, Japan/Korea government bonds, and FX.
-- `KR` close screenshots: attaches two heatmaps for `KOSPI` and `KOSDAQ`.
-- `US` close format: shows US and European indices first, followed by volatility, US Treasuries and commodities, FX, and crypto.
-- `US` close screenshots: attaches one `Finviz` map image.
-- How to customize: update `summary_sections` to change section titles, categories, and item ordering, and update `screenshot_targets` to change which screenshots are attached.
-- GitHub Actions reference: workflows load the same config file through `REPORT_FORMAT_CONFIG=config/report_formats.json`.
+SMTP_USERNAME=your_email@gmail.com
+SMTP_PASSWORD=your_app_password_here
+RECIPIENT_EMAIL=recipient_email@example.com
+```
+
+- If Telegram values are missing, Telegram delivery is skipped.
+- If email values are missing, email delivery is skipped.
+
+### 3. Generate only the report
+
+```bash
+python3 src/main.py --dry-run
+```
+
+This creates `macro_pulse_report.html`.
+
+### 4. Run the full flow
+
+```bash
+python3 src/main.py
+```
+
+### 5. Choose the market mode manually
+
+```bash
+python3 src/main.py --market KR
+python3 src/main.py --market US
+```
+
+- `KR`: Korean market mode
+- `US`: US market mode
+- If you omit the option, the app auto-selects based on current UTC time
+
+## Run with Docker
+
+If you want a local environment closer to GitHub Actions, you can use Docker.
+
+```bash
+docker build -t macro-pulse .
+docker run --rm --env-file .env -v "$PWD:/app" -w /app macro-pulse python src/main.py --dry-run
+```
+
+## Run automatically with GitHub Actions
+
+This repository already includes GitHub Actions workflows.
+
+- Run the report on a schedule
+- Publish the latest report to GitHub Pages
+- Upload logs and outputs as artifacts
+- Send a Telegram alert when a workflow fails
+
+If you need the required secrets, see [`SECRETS.md`](SECRETS.md).
+
+## Want to change the report format?
+
+You can edit [`config/report_formats.json`](../config/report_formats.json).
+
+That file controls:
+
+- which sections appear first
+- which items are included
+- which screenshots are attached
+
+You do not need deep Python knowledge for simple ordering changes.
+
+## Testing
+
+Basic tests:
+
+```bash
+python3 -m unittest discover tests
+```
+
+Live smoke tests against external services:
+
+```bash
+RUN_LIVE_SMOKE_TESTS=1 python3 -m unittest discover tests
+```
+
+Screenshot smoke tests:
+
+```bash
+RUN_SCREENSHOT_SMOKE_TESTS=1 python3 -m unittest tests.test_screenshot
+```
 
 ## Screenshot Examples
 
@@ -57,172 +151,17 @@ Telegram summary formats and screenshot composition are managed in [`../config/r
 
 ![Korea close report example](../imgs/kr.png)
 
-## Output Files
+## Useful Files
 
-- `macro_pulse_report.html`: main HTML report
-- `public/index.html`: report file for GitHub Pages deployment
-- `macro-pulse.log`, `unit-test.log`: workflow logs uploaded as GitHub Actions artifacts
-- Screenshot PNGs: created only as temporary files for Telegram delivery and not stored in the repository root
-
-## GitHub Actions
-
-The main workflow is defined in `.github/workflows/daily_report.yml`.
-
-- `.github/workflows/ci.yml`: runs unit tests in Docker for pushes and pull requests
-- Tuesday to Saturday, 06:30 KST: run the US close report
-- Monday to Friday, 17:00 KST: run the Korea close report
-- Manual trigger: `workflow_dispatch`
-- Format config path: `REPORT_FORMAT_CONFIG=config/report_formats.json`
-- Scheduled/manual workflows build one Docker image and use it for both tests and the actual app run.
-- Generated reports and run logs are uploaded as artifacts.
-- If Telegram secrets are configured, failures trigger a Telegram alert with the run URL.
-
-The companion workflow `.github/workflows/test_telegram.yml` can manually send a Telegram test run in either `KR` or `US` mode.
-
-## GitHub Secrets
-
-To use GitHub Actions, add the following values in `Settings > Secrets and variables > Actions`.
-
-You can find a short reference in [SECRETS.md](SECRETS.md).
-
-- `TELEGRAM_BOT_TOKEN`
-- `TELEGRAM_CHAT_ID`
-- `SMTP_USERNAME` (optional)
-- `SMTP_PASSWORD` (optional)
-- `RECIPIENT_EMAIL` (optional)
-
-## GitHub Pages
-
-To view the latest report on the web, enable GitHub Pages.
-
-1. Open `Settings > Pages`.
-2. Set the deployment branch to `gh-pages`.
-3. After deployment, the report is available at `https://<your-username>.github.io/Macro-Pulse/`.
-
-## Local Installation
-
-```bash
-# Python 3.12 or newer
-python3 -m pip install -r requirements.txt
-```
-
-Docker-based setup:
-
-```bash
-docker build -t macro-pulse .
-```
-
-## Environment Variables
-
-Create a `.env` file in the project root.
-
-```ini
-# Telegram Config
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-TELEGRAM_CHAT_ID=your_chat_id_here
-
-# Email Config (optional)
-SMTP_USERNAME=your_email@gmail.com
-SMTP_PASSWORD=your_app_password_here
-RECIPIENT_EMAIL=recipient_email@example.com
-```
-
-- If `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID` is missing, Telegram delivery is skipped.
-- If `SMTP_USERNAME` or `SMTP_PASSWORD` is missing, email delivery is skipped.
-- If `RECIPIENT_EMAIL` is empty, the report is sent to `SMTP_USERNAME`.
-
-## Local Usage
-
-Generate only the report:
-
-```bash
-python3 src/main.py --dry-run
-```
-
-Run and send notifications:
-
-```bash
-python3 src/main.py
-```
-
-Force a market mode:
-
-```bash
-python3 src/main.py --market KR
-python3 src/main.py --market US
-```
-
-- `--market KR`: Korean market summary with KOSPI/KOSDAQ screenshots
-- `--market US`: US market summary with Finviz screenshot
-- `--market Global` or omitting the option: auto-selects `KR` or `US` from the current UTC time
-
-Run the same dry-run flow in Docker:
-
-```bash
-docker run --rm \
-  --env-file .env \
-  -v "$PWD:/app" \
-  -w /app \
-  macro-pulse \
-  python src/main.py --dry-run
-```
-
-## Testing
-
-Run the standard test suite:
-
-```bash
-python3 -m unittest discover tests
-```
-
-Run live smoke tests:
-
-```bash
-RUN_LIVE_SMOKE_TESTS=1 python3 -m unittest discover tests
-```
-
-Run screenshot smoke tests:
-
-```bash
-RUN_SCREENSHOT_SMOKE_TESTS=1 python3 -m unittest tests.test_screenshot
-```
-
-`RUN_LIVE_SMOKE_TESTS=1` hits external services directly, so results depend on network and provider availability.
+- [`src/main.py`](../src/main.py): app entry point
+- [`src/data_fetcher.py`](../src/data_fetcher.py): data collection
+- [`src/report_generator.py`](../src/report_generator.py): report creation
+- [`src/notifier.py`](../src/notifier.py): Telegram/email delivery
+- [`config/report_formats.json`](../config/report_formats.json): summary format settings
 
 ## Troubleshooting
 
-- Screenshot failures: verify Chrome/Chromium availability and outbound access to the target sites.
-- Missing Telegram messages: check `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.
-- Email failures: Gmail SMTP requires an app password.
-- Missing market data: Yahoo Finance, Frankfurter, or CNBC failures can leave some fields empty.
-- Pages not updating: confirm `gh-pages` is selected as the Pages source branch.
-
-## Project Structure
-
-```text
-.
-|-- src/
-|   |-- main.py
-|   |-- data_fetcher.py
-|   |-- frankfurter_fetcher.py
-|   |-- cnbc_fetcher.py
-|   |-- models.py
-|   |-- logging_utils.py
-|   |-- report_generator.py
-|   |-- report_format_config.py
-|   |-- artifact_utils.py
-|   |-- notifier.py
-|   |-- screenshot_utils.py
-|   `-- templates/report.html
-|-- tests/
-|-- config/
-|-- docs/
-|   |-- README.en.md
-|   `-- SECRETS.md
-|-- imgs/
-|-- .github/workflows/
-|-- Dockerfile
-|-- .dockerignore
-|-- .env-sample
-`-- README.md
-```
+- If screenshots fail, check your Chrome/Chromium setup first.
+- If Telegram messages do not arrive, re-check `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.
+- If some numbers are missing, an external data source may have failed.
+- If GitHub Pages does not update, check the `gh-pages` settings.
