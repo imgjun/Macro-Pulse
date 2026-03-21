@@ -1,0 +1,95 @@
+**Language:** **한국어** | [English](LOCAL_RUN.en.md)
+
+# 로컬 / Docker 실행 가이드
+
+이 문서는 Macro Pulse Bot을 내 컴퓨터에서 직접 실행하는 방법을 정리한 문서입니다.
+
+## 1. Python으로 실행하기
+
+### 설치
+
+```bash
+python3 -m pip install -r requirements.txt
+```
+
+### `.env` 준비
+
+프로젝트 루트에 `.env` 파일을 만들고 아래 값을 넣습니다.
+
+```ini
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
+
+SMTP_USERNAME=your_email@gmail.com
+SMTP_PASSWORD=your_app_password_here
+RECIPIENT_EMAIL=recipient_email@example.com
+```
+
+- 텔레그램 값이 없으면 텔레그램 전송은 건너뜁니다.
+- 이메일 값이 없으면 이메일 전송은 건너뜁니다.
+
+### 리포트만 생성
+
+```bash
+python3 src/main.py --dry-run
+```
+
+실행 후 `macro_pulse_report.html` 파일이 만들어집니다.
+
+### 실제 전송까지 실행
+
+```bash
+python3 src/main.py
+```
+
+### 시장 모드 직접 선택
+
+```bash
+python3 src/main.py --market KR
+python3 src/main.py --market US
+```
+
+- `KR`: 한국장 기준
+- `US`: 미국장 기준
+- 옵션을 빼면 UTC 시간을 기준으로 자동 선택합니다.
+
+## 2. Docker로 실행하기
+
+### 이미지 빌드
+
+```bash
+docker build -t macro-pulse .
+```
+
+### Dry run 실행
+
+```bash
+docker run --rm \
+  --env-file .env \
+  -v "$PWD:/app" \
+  -w /app \
+  macro-pulse \
+  python src/main.py --dry-run
+```
+
+### 실제 실행
+
+```bash
+docker run --rm \
+  --env-file .env \
+  -v "$PWD:/app" \
+  -w /app \
+  macro-pulse \
+  python src/main.py
+```
+
+## 3. 결과 파일
+
+- `macro_pulse_report.html`: 생성된 HTML 리포트
+- 스크린샷 PNG: 전송용 임시 파일
+
+## 4. 자주 생기는 문제
+
+- 스크린샷이 실패하면 Chrome/Chromium 실행 환경을 확인하세요.
+- 텔레그램이 오지 않으면 `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`를 다시 확인하세요.
+- 일부 데이터가 비어 있으면 외부 데이터 소스 응답 문제일 수 있습니다.

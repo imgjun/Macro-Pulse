@@ -40,64 +40,6 @@ The real entry point is [`src/main.py`](../src/main.py).
 - Crypto: `Bitcoin`, `Ethereum`
 - Volatility: `VIX`, `VKOSPI`
 
-## Quick Start
-
-### 1. Install
-
-```bash
-python3 -m pip install -r requirements.txt
-```
-
-### 2. Prepare `.env`
-
-Create a `.env` file in the project root.
-
-```ini
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-TELEGRAM_CHAT_ID=your_chat_id_here
-
-SMTP_USERNAME=your_email@gmail.com
-SMTP_PASSWORD=your_app_password_here
-RECIPIENT_EMAIL=recipient_email@example.com
-```
-
-- If Telegram values are missing, Telegram delivery is skipped.
-- If email values are missing, email delivery is skipped.
-
-### 3. Generate only the report
-
-```bash
-python3 src/main.py --dry-run
-```
-
-This creates `macro_pulse_report.html`.
-
-### 4. Run the full flow
-
-```bash
-python3 src/main.py
-```
-
-### 5. Choose the market mode manually
-
-```bash
-python3 src/main.py --market KR
-python3 src/main.py --market US
-```
-
-- `KR`: Korean market mode
-- `US`: US market mode
-- If you omit the option, the app auto-selects based on current UTC time
-
-## Run with Docker
-
-If you want a local environment closer to GitHub Actions, you can use Docker.
-
-```bash
-docker build -t macro-pulse .
-docker run --rm --env-file .env -v "$PWD:/app" -w /app macro-pulse python src/main.py --dry-run
-```
-
 ## Run automatically with GitHub Actions
 
 This repository already includes GitHub Actions workflows.
@@ -108,6 +50,17 @@ This repository already includes GitHub Actions workflows.
 - Send a Telegram alert when a workflow fails
 
 If you need the required secrets, see [`SECRETS.md`](SECRETS.md).
+
+## Local / Docker Run
+
+You can find the full run guide in [`LOCAL_RUN.en.md`](LOCAL_RUN.en.md).
+
+> Quick preview
+>
+> - Install: `python3 -m pip install -r requirements.txt`
+> - Python dry run: `python3 src/main.py --dry-run`
+> - Docker build: `docker build -t macro-pulse .`
+> - Docker dry run: `docker run --rm --env-file .env -v "$PWD:/app" -w /app macro-pulse python src/main.py --dry-run`
 
 ## Want to change the report format?
 
