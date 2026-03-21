@@ -51,17 +51,6 @@ This repository already includes GitHub Actions workflows.
 
 If you need the required secrets, see [`SECRETS.md`](SECRETS.md).
 
-## Local / Docker Run
-
-You can find the full run guide in [`LOCAL_RUN.en.md`](LOCAL_RUN.en.md).
-
-> Quick preview
->
-> - Install: `python3 -m pip install -r requirements.txt`
-> - Python dry run: `python3 src/main.py --dry-run`
-> - Docker build: `docker build -t macro-pulse .`
-> - Docker dry run: `docker run --rm --env-file .env -v "$PWD:/app" -w /app macro-pulse python src/main.py --dry-run`
-
 ## Want to change the report format?
 
 You can edit [`config/report_formats.json`](../config/report_formats.json).
@@ -73,6 +62,17 @@ That file controls:
 - which screenshots are attached
 
 You do not need deep Python knowledge for simple ordering changes.
+
+## Local / Docker Run
+
+You can find the full run guide in [`LOCAL_RUN.en.md`](LOCAL_RUN.en.md).
+
+> Quick preview
+>
+> - Install: `python3 -m pip install -r requirements.txt`
+> - Python dry run: `python3 src/main.py --dry-run`
+> - Docker build: `docker build -t macro-pulse .`
+> - Docker dry run: `docker run --rm --env-file .env -v "$PWD:/app" -w /app macro-pulse python src/main.py --dry-run`
 
 ## Testing
 
