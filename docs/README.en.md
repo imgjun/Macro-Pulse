@@ -60,6 +60,7 @@ That file controls:
 - which sections appear first
 - which items are included
 - which screenshots are attached
+- the KR/US workflow cron schedule
 
 You do not need deep Python knowledge for simple ordering changes.
 
