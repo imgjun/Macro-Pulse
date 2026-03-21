@@ -10,7 +10,9 @@ Macro Pulse Bot collects major macroeconomic indicators, builds an HTML report, 
 - Generates an HTML report with daily changes and recent trend history.
 - Sends KOSPI/KOSDAQ heatmap screenshots in `KR` mode and a Finviz heatmap screenshot in `US` mode.
 - Supports Telegram delivery and optional SMTP email delivery.
-- Can publish the latest report to GitHub Pages after scheduled runs.
+- Uses typed dataclass models and centralized logging across the pipeline.
+- Aligns local and CI runtime with a shared Docker image.
+- Can publish the latest report to GitHub Pages after scheduled runs, upload artifacts, and send failure notifications.
 
 ## Covered Data
 
@@ -24,9 +26,10 @@ Macro Pulse Bot collects major macroeconomic indicators, builds an HTML report, 
 ## How It Works
 
 1. `src/data_fetcher.py` pulls market data from Yahoo Finance, Frankfurter, and CNBC.
-2. `src/report_generator.py` builds the HTML report and Telegram summary text.
-3. `src/main.py` writes the result to `macro_pulse_report.html`.
-4. Unless `--dry-run` is used, it creates temporary screenshots for the active market mode, uses them for delivery, and removes them afterward.
+2. The fetched payload is normalized into dataclass models before rendering.
+3. `src/report_generator.py` builds the HTML report and Telegram summary text without mutating the original input data.
+4. `src/main.py` writes the result to `macro_pulse_report.html`.
+5. Unless `--dry-run` is used, it creates temporary screenshots for the active market mode, uses them for delivery, and removes them afterward.
 
 ## Requirements
 
@@ -58,16 +61,21 @@ Telegram summary formats and screenshot composition are managed in [`../config/r
 
 - `macro_pulse_report.html`: main HTML report
 - `public/index.html`: report file for GitHub Pages deployment
+- `macro-pulse.log`, `unit-test.log`: workflow logs uploaded as GitHub Actions artifacts
 - Screenshot PNGs: created only as temporary files for Telegram delivery and not stored in the repository root
 
 ## GitHub Actions
 
 The main workflow is defined in `.github/workflows/daily_report.yml`.
 
+- `.github/workflows/ci.yml`: runs unit tests in Docker for pushes and pull requests
 - Tuesday to Saturday, 06:30 KST: run the US close report
 - Monday to Friday, 17:00 KST: run the Korea close report
 - Manual trigger: `workflow_dispatch`
 - Format config path: `REPORT_FORMAT_CONFIG=config/report_formats.json`
+- Scheduled/manual workflows build one Docker image and use it for both tests and the actual app run.
+- Generated reports and run logs are uploaded as artifacts.
+- If Telegram secrets are configured, failures trigger a Telegram alert with the run URL.
 
 The companion workflow `.github/workflows/test_telegram.yml` can manually send a Telegram test run in either `KR` or `US` mode.
 
@@ -95,7 +103,13 @@ To view the latest report on the web, enable GitHub Pages.
 
 ```bash
 # Python 3.12 or newer
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
+```
+
+Docker-based setup:
+
+```bash
+docker build -t macro-pulse .
 ```
 
 ## Environment Variables
@@ -122,46 +136,55 @@ RECIPIENT_EMAIL=recipient_email@example.com
 Generate only the report:
 
 ```bash
-python src/main.py --dry-run
+python3 src/main.py --dry-run
 ```
 
 Run and send notifications:
 
 ```bash
-python src/main.py
+python3 src/main.py
 ```
 
 Force a market mode:
 
 ```bash
-python src/main.py --market KR
-python src/main.py --market US
+python3 src/main.py --market KR
+python3 src/main.py --market US
 ```
 
 - `--market KR`: Korean market summary with KOSPI/KOSDAQ screenshots
 - `--market US`: US market summary with Finviz screenshot
 - `--market Global` or omitting the option: auto-selects `KR` or `US` from the current UTC time
 
+Run the same dry-run flow in Docker:
+
+```bash
+docker run --rm \
+  --env-file .env \
+  -v "$PWD:/app" \
+  -w /app \
+  macro-pulse \
+  python src/main.py --dry-run
+```
+
 ## Testing
 
 Run the standard test suite:
 
 ```bash
-python -m unittest discover tests
+python3 -m unittest discover tests
 ```
 
 Run live smoke tests:
 
 ```bash
-RUN_LIVE_SMOKE_TESTS=1 python -m unittest discover tests
+RUN_LIVE_SMOKE_TESTS=1 python3 -m unittest discover tests
 ```
 
-Run screenshot checks individually:
+Run screenshot smoke tests:
 
 ```bash
-python tests/test_screenshot.py --target finviz
-python tests/test_screenshot.py --target kospi
-python tests/test_screenshot.py --target kosdaq
+RUN_SCREENSHOT_SMOKE_TESTS=1 python3 -m unittest tests.test_screenshot
 ```
 
 `RUN_LIVE_SMOKE_TESTS=1` hits external services directly, so results depend on network and provider availability.
@@ -183,6 +206,8 @@ python tests/test_screenshot.py --target kosdaq
 |   |-- data_fetcher.py
 |   |-- frankfurter_fetcher.py
 |   |-- cnbc_fetcher.py
+|   |-- models.py
+|   |-- logging_utils.py
 |   |-- report_generator.py
 |   |-- report_format_config.py
 |   |-- artifact_utils.py
@@ -196,7 +221,8 @@ python tests/test_screenshot.py --target kosdaq
 |   `-- SECRETS.md
 |-- imgs/
 |-- .github/workflows/
+|-- Dockerfile
+|-- .dockerignore
 |-- .env-sample
-|-- main.py
 `-- README.md
 ```

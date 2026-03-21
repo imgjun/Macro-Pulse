@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "codex/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build runtime image
+      run: docker build -t macro-pulse:ci .
+
+    - name: Run unit tests in Docker
+      run: |
+        docker run --rm \
+          -v "$PWD:/app" \
+          -w /app \
+          macro-pulse:ci \
+          sh -lc "python -m unittest discover tests 2>&1 | tee unit-test.log"
+
+    - name: Upload CI artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ci-logs
+        path: unit-test.log
+        if-no-files-found: ignore

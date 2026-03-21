@@ -10,7 +10,9 @@ Macro Pulse Bot은 주요 거시경제 지표를 수집해 HTML 리포트를 만
 - 일간 변동률과 최근 7개 구간 추이를 포함한 HTML 리포트를 생성합니다.
 - `KR` 모드에서는 KOSPI/KOSDAQ 히트맵, `US` 모드에서는 Finviz 맵 스크린샷을 함께 전송합니다.
 - 텔레그램 메시지 전송을 지원하며, SMTP 설정 시 이메일 발송도 가능합니다.
-- GitHub Actions에서 스케줄 실행 후 최신 리포트를 GitHub Pages에 배포할 수 있습니다.
+- dataclass 기반 데이터 모델과 통합 로깅으로 데이터 흐름을 명시적으로 관리합니다.
+- Docker 이미지를 기준으로 로컬 실행과 GitHub Actions 런타임을 맞춥니다.
+- GitHub Actions에서 스케줄 실행 후 최신 리포트를 GitHub Pages에 배포하고, artifact 업로드 및 실패 알림을 보냅니다.
 
 ## 수집 항목
 
@@ -24,9 +26,10 @@ Macro Pulse Bot은 주요 거시경제 지표를 수집해 HTML 리포트를 만
 ## 동작 방식
 
 1. `src/data_fetcher.py`가 Yahoo Finance, Frankfurter, CNBC에서 데이터를 수집합니다.
-2. `src/report_generator.py`가 HTML 리포트와 텔레그램 요약 메시지를 생성합니다.
-3. `src/main.py`가 리포트를 `macro_pulse_report.html`로 저장합니다.
-4. `--dry-run`이 아니면 시장 모드에 맞는 스크린샷을 임시 파일로 생성해 전송에 사용하고, 작업이 끝나면 정리합니다.
+2. 수집 결과는 dataclass 모델로 정규화되어 후속 단계로 전달됩니다.
+3. `src/report_generator.py`가 원본 데이터를 mutate하지 않고 HTML 리포트와 텔레그램 요약 메시지를 생성합니다.
+4. `src/main.py`가 리포트를 `macro_pulse_report.html`로 저장합니다.
+5. `--dry-run`이 아니면 시장 모드에 맞는 스크린샷을 임시 파일로 생성해 전송에 사용하고, 작업이 끝나면 정리합니다.
 
 ## 요구 사항
 
@@ -58,16 +61,21 @@ Macro Pulse Bot은 주요 거시경제 지표를 수집해 HTML 리포트를 만
 
 - `macro_pulse_report.html`: 메인 HTML 리포트
 - `public/index.html`: GitHub Pages 배포용 리포트 파일
+- `macro-pulse.log`, `unit-test.log`: GitHub Actions artifact로 업로드되는 실행/테스트 로그
 - 스크린샷 PNG: 텔레그램 전송에만 생성되며 저장소에는 기록하지 않음
 
 ## GitHub Actions
 
 기본 워크플로는 `.github/workflows/daily_report.yml`에 정의되어 있습니다.
 
+- `.github/workflows/ci.yml`: pull request / push 시 Docker 이미지로 unit test 실행
 - 화요일-토요일 06:30 KST: 미장 마감 기준 리포트 실행
 - 월요일-금요일 17:00 KST: 국장 마감 기준 리포트 실행
 - 수동 실행: `workflow_dispatch`
 - 포맷 설정 파일: `REPORT_FORMAT_CONFIG=config/report_formats.json`
+- 스케줄 워크플로는 Docker 이미지 빌드 후 같은 이미지에서 테스트와 본 실행을 모두 수행합니다.
+- 리포트 HTML과 실행 로그는 artifact로 업로드됩니다.
+- 실패 시 Telegram Bot Secret이 설정되어 있으면 실행 링크를 포함한 실패 알림을 전송합니다.
 
 보조 워크플로 `.github/workflows/test_telegram.yml`에서는 `KR` 또는 `US` 모드를 선택해 텔레그램 전송 테스트를 수동 실행할 수 있습니다.
 
@@ -95,7 +103,13 @@ GitHub Actions에서 사용하려면 저장소의 `Settings > Secrets and variab
 
 ```bash
 # Python 3.12 이상
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
+```
+
+Docker 기준 실행:
+
+```bash
+docker build -t macro-pulse .
 ```
 
 ## 환경 변수 설정
@@ -123,47 +137,55 @@ RECIPIENT_EMAIL=recipient_email@example.com
 리포트만 생성:
 
 ```bash
-python src/main.py --dry-run
+python3 src/main.py --dry-run
 ```
 
 자동 모드로 실행 후 전송:
 
 ```bash
-python src/main.py
+python3 src/main.py
 ```
 
 시장 모드 강제 지정:
 
 ```bash
-python src/main.py --market KR
-python src/main.py --market US
+python3 src/main.py --market KR
+python3 src/main.py --market US
 ```
 
 - `--market KR`: 국장 기준 요약 및 KOSPI/KOSDAQ 스크린샷 사용
 - `--market US`: 미장 기준 요약 및 Finviz 스크린샷 사용
 - `--market Global` 또는 옵션 생략: 현재 UTC 시간 기준으로 `KR`/`US` 자동 선택
 
+Docker로 dry-run 실행:
+
+```bash
+docker run --rm \
+  --env-file .env \
+  -v "$PWD:/app" \
+  -w /app \
+  macro-pulse \
+  python src/main.py --dry-run
+```
 
 ## 테스트
 
 기본 테스트 실행:
 
 ```bash
-python -m unittest discover tests
+python3 -m unittest discover tests
 ```
 
 라이브 스모크 테스트 실행:
 
 ```bash
-RUN_LIVE_SMOKE_TESTS=1 python -m unittest discover tests
+RUN_LIVE_SMOKE_TESTS=1 python3 -m unittest discover tests
 ```
 
-스크린샷만 개별 확인:
+스크린샷 스모크 테스트 실행:
 
 ```bash
-python tests/test_screenshot.py --target finviz
-python tests/test_screenshot.py --target kospi
-python tests/test_screenshot.py --target kosdaq
+RUN_SCREENSHOT_SMOKE_TESTS=1 python3 -m unittest tests.test_screenshot
 ```
 
 `RUN_LIVE_SMOKE_TESTS=1`은 실제 외부 서비스에 요청을 보내므로 네트워크 상태와 외부 사이트 응답에 따라 테스트가 달라질 수 있습니다.
@@ -177,6 +199,8 @@ python tests/test_screenshot.py --target kosdaq
 |   |-- data_fetcher.py
 |   |-- frankfurter_fetcher.py
 |   |-- cnbc_fetcher.py
+|   |-- models.py
+|   |-- logging_utils.py
 |   |-- report_generator.py
 |   |-- report_format_config.py
 |   |-- artifact_utils.py
@@ -190,8 +214,9 @@ python tests/test_screenshot.py --target kosdaq
 |   `-- SECRETS.md
 |-- imgs/
 |-- .github/workflows/
+|-- Dockerfile
+|-- .dockerignore
 |-- .env-sample
-|-- main.py
 `-- README.md
 ```
 

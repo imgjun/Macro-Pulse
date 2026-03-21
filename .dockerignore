@@ -1,0 +1,12 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.pyo
+.DS_Store
+.env
+macro_pulse_report.html
+public
+tests/__pycache__
+src/__pycache__
