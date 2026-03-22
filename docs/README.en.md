@@ -40,15 +40,6 @@ The real entry point is [`src/main.py`](../src/main.py).
 - Crypto: `Bitcoin`, `Ethereum`
 - Volatility: `VIX`, `VKOSPI`
 
-## Fork Setup
-
-If you want to use this project from your own fork, set up these items first.
-
-1. Open the `Actions` tab in your fork and enable workflows.
-2. Add the Telegram/Email secrets in `Settings > Secrets and variables > Actions`.
-3. If you want the web report, enable `Settings > Pages` and use `gh-pages` as the deployment branch.
-4. If needed, edit [`config/report_formats.json`](../config/report_formats.json) for KR/US format and schedule changes.
-
 ## GitHub Actions
 
 This repository already includes GitHub Actions workflows.
@@ -72,6 +63,15 @@ That file controls:
 - the KR/US workflow cron schedule
 
 You do not need deep Python knowledge for simple ordering changes.
+
+## Fork Setup
+
+If you want to use this project from your own fork, set up these items first.
+
+1. Open the `Actions` tab in your fork and enable workflows.
+2. Add the Telegram/Email secrets in `Settings > Secrets and variables > Actions`.
+3. If you want the web report, enable `Settings > Pages` and use `gh-pages` as the deployment branch.
+4. If needed, edit [`config/report_formats.json`](../config/report_formats.json) for KR/US format and schedule changes.
 
 ## Local / Docker Run
 
