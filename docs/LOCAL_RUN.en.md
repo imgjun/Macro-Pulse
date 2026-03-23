@@ -4,13 +4,17 @@
 
 This document explains how to run Macro Pulse Bot on your own machine.
 
-## 1. Python
+## 1. uv
 
 ### Install
 
 ```bash
-python3 -m pip install -r requirements.txt
+uv python install
+uv sync --all-groups
 ```
+
+- This repository manages dependencies with [`pyproject.toml`](../pyproject.toml) and [`uv.lock`](../uv.lock).
+- The default Python version is pinned in [`.python-version`](../.python-version).
 
 ### Prepare `.env`
 
@@ -31,7 +35,7 @@ RECIPIENT_EMAIL=recipient_email@example.com
 ### Generate only the report
 
 ```bash
-python3 src/main.py --dry-run
+uv run python src/main.py --dry-run
 ```
 
 This creates `macro_pulse_report.html`.
@@ -39,14 +43,14 @@ This creates `macro_pulse_report.html`.
 ### Run the full flow
 
 ```bash
-python3 src/main.py
+uv run python src/main.py
 ```
 
 ### Choose the market mode manually
 
 ```bash
-python3 src/main.py --market KR
-python3 src/main.py --market US
+uv run python src/main.py --market KR
+uv run python src/main.py --market US
 ```
 
 - `KR`: Korean market mode
@@ -69,7 +73,7 @@ docker run --rm \
   -v "$PWD:/app" \
   -w /app \
   macro-pulse \
-  python src/main.py --dry-run
+  uv run --frozen python src/main.py --dry-run
 ```
 
 ### Run the full flow
@@ -80,7 +84,7 @@ docker run --rm \
   -v "$PWD:/app" \
   -w /app \
   macro-pulse \
-  python src/main.py
+  uv run --frozen python src/main.py
 ```
 
 ## 3. Output Files

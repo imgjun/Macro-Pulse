@@ -36,7 +36,7 @@ jobs:
           -v "$PWD:/app" \
           -w /app \
           macro-pulse:test \
-          sh -lc "python -m unittest discover tests 2>&1 | tee unit-test.log"
+          sh -lc "uv run --frozen python -m unittest discover tests 2>&1 | tee unit-test.log"
 
     - name: Run Telegram report test in Docker
       run: |
@@ -50,7 +50,7 @@ jobs:
           -v "$PWD:/app" \
           -w /app \
           macro-pulse:test \
-          sh -lc "python src/main.py --market ${{ inputs.market }} 2>&1 | tee macro-pulse.log"
+          sh -lc "uv run --frozen python src/main.py --market ${{ inputs.market }} 2>&1 | tee macro-pulse.log"
 
     - name: Upload report artifact
       if: always()

@@ -1,12 +1,17 @@
-FROM python:3.12-slim
+FROM python:3.14-slim
+
+COPY --from=ghcr.io/astral-sh/uv:0.9.27 /uv /uvx /bin/
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
     MPLCONFIGDIR=/tmp/matplotlib \
     YFINANCE_CACHE_DIR=/tmp/macro-pulse-yfinance \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/opt/venv \
     CHROME_BIN=/usr/bin/chromium \
-    CHROMEDRIVER_BIN=/usr/bin/chromedriver
+    CHROMEDRIVER_BIN=/usr/bin/chromedriver \
+    PATH="/opt/venv/bin:/root/.local/bin:$PATH"
 
 WORKDIR /app
 
@@ -19,10 +24,9 @@ RUN apt-get update \
         curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --upgrade pip \
-    && pip install -r requirements.txt
+COPY pyproject.toml uv.lock .python-version ./
+RUN uv sync --frozen --all-groups --no-install-project
 
 COPY . .
 
-CMD ["python", "src/main.py", "--dry-run"]
+CMD ["uv", "run", "--frozen", "python", "src/main.py", "--dry-run"]

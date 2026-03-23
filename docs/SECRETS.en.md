@@ -4,6 +4,8 @@
 
 To run Macro Pulse Bot correctly through GitHub Actions, add the following repository secrets.
 
+The workflows run inside a runtime image built from `uv.lock`.
+
 Path:
 `Settings` -> `Secrets and variables` -> `Actions` -> `New repository secret`
 

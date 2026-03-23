@@ -73,29 +73,29 @@ Fork해서 바로 쓰려면 아래만 먼저 설정하면 됩니다.
 
 > 빠른 미리보기
 >
-> - 설치: `python3 -m pip install -r requirements.txt`
-> - Python dry-run: `python3 src/main.py --dry-run`
+> - 설치: `uv sync --all-groups`
+> - Python dry-run: `uv run python src/main.py --dry-run`
 > - Docker build: `docker build -t macro-pulse .`
-> - Docker dry-run: `docker run --rm --env-file .env -v "$PWD:/app" -w /app macro-pulse python src/main.py --dry-run`
+> - Docker dry-run: `docker run --rm --env-file .env -v "$PWD:/app" -w /app macro-pulse uv run --frozen python src/main.py --dry-run`
 
 ## 테스트
 
 기본 테스트:
 
 ```bash
-python3 -m unittest discover tests
+uv run python -m unittest discover tests
 ```
 
 실제 외부 서비스까지 확인하는 스모크 테스트:
 
 ```bash
-RUN_LIVE_SMOKE_TESTS=1 python3 -m unittest discover tests
+RUN_LIVE_SMOKE_TESTS=1 uv run python -m unittest discover tests
 ```
 
 스크린샷 스모크 테스트:
 
 ```bash
-RUN_SCREENSHOT_SMOKE_TESTS=1 python3 -m unittest tests.test_screenshot
+RUN_SCREENSHOT_SMOKE_TESTS=1 uv run python -m unittest tests.test_screenshot
 ```
 
 ## 스크린샷 예시

@@ -4,6 +4,8 @@
 
 GitHub Actions에서 Macro Pulse Bot을 정상적으로 실행하려면 저장소에 아래 Secret 값을 등록해야 합니다.
 
+워크플로는 `uv.lock`을 기준으로 빌드된 런타임 이미지를 사용합니다.
+
 경로:
 `Settings` -> `Secrets and variables` -> `Actions` -> `New repository secret`
 

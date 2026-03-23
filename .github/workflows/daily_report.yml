@@ -37,7 +37,7 @@ jobs:
           -v "$PWD:/app" \
           -w /app \
           macro-pulse:daily \
-          sh -lc "python -m unittest discover tests 2>&1 | tee unit-test.log"
+          sh -lc "uv run --frozen python -m unittest discover tests 2>&1 | tee unit-test.log"
 
     - name: Run Macro Pulse Bot in Docker
       run: |
@@ -51,7 +51,7 @@ jobs:
           -v "$PWD:/app" \
           -w /app \
           macro-pulse:daily \
-          sh -lc "python src/main.py 2>&1 | tee macro-pulse.log"
+          sh -lc "uv run --frozen python src/main.py 2>&1 | tee macro-pulse.log"
       
     - name: Validate generated report
       if: success()

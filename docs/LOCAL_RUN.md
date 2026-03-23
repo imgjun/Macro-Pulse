@@ -4,13 +4,17 @@
 
 이 문서는 Macro Pulse Bot을 내 컴퓨터에서 직접 실행하는 방법을 정리한 문서입니다.
 
-## 1. Python 실행
+## 1. uv 실행
 
 ### 설치
 
 ```bash
-python3 -m pip install -r requirements.txt
+uv python install
+uv sync --all-groups
 ```
+
+- 이 저장소는 [`pyproject.toml`](../pyproject.toml)과 [`uv.lock`](../uv.lock)을 기준으로 의존성을 관리합니다.
+- 기본 Python 버전은 [`.python-version`](../.python-version) 파일에 맞춰집니다.
 
 ### `.env` 준비
 
@@ -31,7 +35,7 @@ RECIPIENT_EMAIL=recipient_email@example.com
 ### 리포트만 생성
 
 ```bash
-python3 src/main.py --dry-run
+uv run python src/main.py --dry-run
 ```
 
 실행 후 `macro_pulse_report.html` 파일이 만들어집니다.
@@ -39,14 +43,14 @@ python3 src/main.py --dry-run
 ### 실제 전송까지 실행
 
 ```bash
-python3 src/main.py
+uv run python src/main.py
 ```
 
 ### 시장 모드 직접 선택
 
 ```bash
-python3 src/main.py --market KR
-python3 src/main.py --market US
+uv run python src/main.py --market KR
+uv run python src/main.py --market US
 ```
 
 - `KR`: 한국장 기준
@@ -69,7 +73,7 @@ docker run --rm \
   -v "$PWD:/app" \
   -w /app \
   macro-pulse \
-  python src/main.py --dry-run
+  uv run --frozen python src/main.py --dry-run
 ```
 
 ### 실제 실행
@@ -80,7 +84,7 @@ docker run --rm \
   -v "$PWD:/app" \
   -w /app \
   macro-pulse \
-  python src/main.py
+  uv run --frozen python src/main.py
 ```
 
 ## 3. 결과 파일

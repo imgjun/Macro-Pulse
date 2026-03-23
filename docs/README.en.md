@@ -79,29 +79,29 @@ You can find the full run guide in [`LOCAL_RUN.en.md`](LOCAL_RUN.en.md).
 
 > Quick preview
 >
-> - Install: `python3 -m pip install -r requirements.txt`
-> - Python dry run: `python3 src/main.py --dry-run`
+> - Install: `uv sync --all-groups`
+> - Python dry run: `uv run python src/main.py --dry-run`
 > - Docker build: `docker build -t macro-pulse .`
-> - Docker dry run: `docker run --rm --env-file .env -v "$PWD:/app" -w /app macro-pulse python src/main.py --dry-run`
+> - Docker dry run: `docker run --rm --env-file .env -v "$PWD:/app" -w /app macro-pulse uv run --frozen python src/main.py --dry-run`
 
 ## Testing
 
 Basic tests:
 
 ```bash
-python3 -m unittest discover tests
+uv run python -m unittest discover tests
 ```
 
 Live smoke tests against external services:
 
 ```bash
-RUN_LIVE_SMOKE_TESTS=1 python3 -m unittest discover tests
+RUN_LIVE_SMOKE_TESTS=1 uv run python -m unittest discover tests
 ```
 
 Screenshot smoke tests:
 
 ```bash
-RUN_SCREENSHOT_SMOKE_TESTS=1 python3 -m unittest tests.test_screenshot
+RUN_SCREENSHOT_SMOKE_TESTS=1 uv run python -m unittest tests.test_screenshot
 ```
 
 ## Screenshot Examples
