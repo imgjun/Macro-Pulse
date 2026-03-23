@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-from data_fetcher import fetch_all_data
-from notifier import send_telegram_report
-from report_generator import generate_html_report
+from macro_pulse.data.market_data import fetch_all_data
+from macro_pulse.delivery.notifier import send_telegram_report
+from macro_pulse.reporting.generator import generate_html_report
 
 
 load_dotenv()

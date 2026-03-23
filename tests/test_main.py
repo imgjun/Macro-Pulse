@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, patch
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-import main as app_main
-from models import (
+from macro_pulse.app import cli as app_main
+from macro_pulse.domain.models import (
     AssetSnapshot,
     ModeFormatConfig,
     ReportFormatConfig,
@@ -54,16 +54,24 @@ class MainTests(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "macro_pulse_report.html"
             with (
-                patch("main.fetch_all_data", return_value=data),
-                patch("main.load_report_format_config", return_value=config),
+                patch("macro_pulse.app.cli.fetch_all_data", return_value=data),
                 patch(
-                    "main.generate_html_report", return_value="<html>report</html>"
+                    "macro_pulse.app.cli.load_report_format_config",
+                    return_value=config,
+                ),
+                patch(
+                    "macro_pulse.app.cli.generate_html_report",
+                    return_value="<html>report</html>",
                 ) as html_report,
                 patch(
-                    "main.generate_telegram_summary", return_value="summary"
+                    "macro_pulse.app.cli.generate_telegram_summary",
+                    return_value="summary",
                 ) as telegram_summary,
-                patch("main.send_telegram_report", new_callable=AsyncMock) as telegram,
-                patch("main.send_email_report") as email,
+                patch(
+                    "macro_pulse.app.cli.send_telegram_report",
+                    new_callable=AsyncMock,
+                ) as telegram,
+                patch("macro_pulse.app.cli.send_email_report") as email,
             ):
                 previous_cwd = os.getcwd()
                 os.chdir(temp_dir)

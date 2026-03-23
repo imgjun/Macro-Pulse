@@ -6,8 +6,8 @@ from typing import Mapping
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from logging_utils import get_logger
-from models import CnbcQuote, ExchangeRates, coerce_cnbc_quote
+from ...core.logging import get_logger
+from ...domain.models import CnbcQuote, ExchangeRates, coerce_cnbc_quote
 
 
 logger = get_logger(__name__)

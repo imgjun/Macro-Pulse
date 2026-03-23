@@ -117,9 +117,9 @@ RUN_SCREENSHOT_SMOKE_TESTS=1 uv run python -m unittest tests.test_screenshot
 ## Useful Files
 
 - [`src/main.py`](../src/main.py): app entry point
-- [`src/data_fetcher.py`](../src/data_fetcher.py): data collection
-- [`src/report_generator.py`](../src/report_generator.py): report creation
-- [`src/notifier.py`](../src/notifier.py): Telegram/email delivery
+- [`src/macro_pulse/data/market_data.py`](../src/macro_pulse/data/market_data.py): data collection orchestration
+- [`src/macro_pulse/reporting/generator.py`](../src/macro_pulse/reporting/generator.py): report creation
+- [`src/macro_pulse/delivery/notifier.py`](../src/macro_pulse/delivery/notifier.py): Telegram/email delivery
 - [`config/report_formats.json`](../config/report_formats.json): summary format settings
 
 ## Troubleshooting

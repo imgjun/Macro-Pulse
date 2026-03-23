@@ -6,14 +6,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-from notifier import send_email_report, send_telegram_report
+from macro_pulse.delivery.notifier import send_email_report, send_telegram_report
 
 
 class NotifierTests(unittest.IsolatedAsyncioTestCase):
     async def test_send_telegram_report_sends_message_and_images(self):
         with (
-            patch("notifier.Bot") as bot_cls,
-            patch("notifier.os.path.exists", return_value=True),
+            patch("macro_pulse.delivery.notifier.Bot") as bot_cls,
+            patch("macro_pulse.delivery.notifier.os.path.exists", return_value=True),
             patch("builtins.open", unittest.mock.mock_open(read_data=b"image")),
         ):
             bot = AsyncMock()
@@ -36,7 +36,9 @@ class NotifierTests(unittest.IsolatedAsyncioTestCase):
         smtp.__enter__.return_value = smtp
         smtp.__exit__.return_value = False
 
-        with patch("notifier.smtplib.SMTP", return_value=smtp) as smtp_cls:
+        with patch(
+            "macro_pulse.delivery.notifier.smtplib.SMTP", return_value=smtp
+        ) as smtp_cls:
             result = send_email_report(
                 "user@example.com",
                 "password",

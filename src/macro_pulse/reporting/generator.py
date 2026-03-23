@@ -1,27 +1,27 @@
-import os
 import base64
 import io
-from pathlib import Path
+import os
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+
 import matplotlib
 import matplotlib.pyplot as plt
 from jinja2 import Environment, FileSystemLoader
 
-from logging_utils import get_logger
-from models import RenderedAssetSnapshot, ValueFormat, normalize_dataset
-from report_format_config import get_mode_format, load_report_format_config
+from ..config.report_formats import get_mode_format, load_report_format_config
+from ..core.logging import get_logger
+from ..core.paths import PACKAGE_ROOT, resolve_project_path
+from ..domain.models import RenderedAssetSnapshot, ValueFormat, normalize_dataset
 
-# Use Agg backend for non-interactive environments
+
 matplotlib.use("Agg")
 
 logger = get_logger(__name__)
 
+DEFAULT_TEMPLATE_DIR = PACKAGE_ROOT / "reporting" / "templates"
+
 
 def generate_sparkline(history):
-    """
-    Generates a sparkline image as a base64 string.
-    """
     figure, axis = plt.subplots(figsize=(2, 0.5))
     axis.plot(
         history,
@@ -31,18 +31,15 @@ def generate_sparkline(history):
     axis.axis("off")
     figure.tight_layout(pad=0)
 
-    img = io.BytesIO()
-    figure.savefig(img, format="png", transparent=True)
-    img.seek(0)
+    image = io.BytesIO()
+    figure.savefig(image, format="png", transparent=True)
+    image.seek(0)
     plt.close(figure)
 
-    return base64.b64encode(img.getvalue()).decode("utf-8")
+    return base64.b64encode(image.getvalue()).decode("utf-8")
 
 
-def generate_html_report(data, template_dir="src/templates"):
-    """
-    Generates the HTML report using Jinja2.
-    """
+def generate_html_report(data, template_dir=None):
     normalized_data = normalize_dataset(data)
     logger.info("Generating HTML report for %s categories", len(normalized_data))
     rendered_data = {
@@ -56,57 +53,44 @@ def generate_html_report(data, template_dir="src/templates"):
 
 
 def generate_telegram_summary(data, mode="Global", format_config=None):
-    """
-    Generates a text summary for Telegram based on the configured market mode.
-    """
     normalized_data = normalize_dataset(data)
     logger.info("Generating Telegram summary for mode=%s", mode)
 
-    def _format_line(item):
-        price = item.price
-        change_pct = item.change_pct
-
-        if price is None:
+    def format_line(item):
+        if item.price is None:
             return f"{item.name}: N/A"
 
-        price_str = _format_numeric(price, item.value_format)
-
-        if change_pct is not None and change_pct != 0:
-            change_str = f"({change_pct:+,.2f}%)"
-            return f"{item.name}: {price_str} {change_str}"
-
+        price_str = _format_numeric(item.price, item.value_format)
+        if item.change_pct not in (None, 0):
+            return f"{item.name}: {price_str} ({item.change_pct:+,.2f}%)"
         return f"{item.name}: {price_str}"
 
     def get_items(category, names):
-        found = []
-        source_list = normalized_data.get(category, [])
+        source_items = normalized_data.get(category, [])
+        found_items = []
         for name in names:
-            for item in source_list:
+            for item in source_items:
                 if item.name == name:
-                    found.append(item)
+                    found_items.append(item)
                     break
-        return found
+        return found_items
 
     mode_format = get_mode_format(mode, format_config or load_report_format_config())
-    sections = mode_format.summary_sections
-
     lines = []
-    for index, section in enumerate(sections):
+    for index, section in enumerate(mode_format.summary_sections):
         lines.append(f"[{section.title}]")
         for item in get_items(section.category, section.items):
-            lines.append(_format_line(item))
-        if index < len(sections) - 1:
+            lines.append(format_line(item))
+        if index < len(mode_format.summary_sections) - 1:
             lines.append("")
 
     return "\n".join(lines)
 
 
 def _resolve_template_dir(template_dir):
-    path = Path(template_dir)
-    if path.is_absolute():
-        return str(path)
-    project_root = Path(__file__).resolve().parents[1]
-    return str(project_root / path)
+    if template_dir is None:
+        return str(DEFAULT_TEMPLATE_DIR)
+    return str(resolve_project_path(template_dir))
 
 
 def _render_item(item) -> RenderedAssetSnapshot:
@@ -150,7 +134,3 @@ def _format_signed_numeric(value, value_format):
         return ""
     decimals = 3 if value_format == ValueFormat.YIELD_3 else 2
     return f"{value:+,.{decimals}f}"
-
-
-if __name__ == "__main__":
-    pass

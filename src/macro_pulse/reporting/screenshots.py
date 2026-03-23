@@ -2,8 +2,8 @@ import os
 import shutil
 import time
 
-from artifact_utils import resolve_output_path
-from logging_utils import get_logger
+from ..core.artifacts import resolve_output_path
+from ..core.logging import get_logger
 
 try:
     from selenium import webdriver
@@ -31,16 +31,11 @@ except (
 logger = get_logger(__name__)
 
 
+FINVIZ_URL = "https://finviz.com/map.ashx"
 MARKETMAP_URLS = {
     "kospi": "https://markets.hankyung.com/marketmap/kospi",
     "kosdaq": "https://markets.hankyung.com/marketmap/kosdaq",
 }
-MARKETMAP_CONTAINER_SELECTORS = (
-    "div.map-area",
-    "#map_area.map-area",
-    "div.fiq-marketmap",
-    "#map_area.fiq-marketmap",
-)
 MARKETMAP_WRAPPER_SELECTORS = (
     "#map_area.fiq-marketmap",
     "div.fiq-marketmap",
@@ -67,36 +62,34 @@ def get_chrome_driver():
         "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
     chrome_options.set_capability("pageLoadStrategy", "eager")
+
     chrome_binary = _resolve_chrome_binary()
     if chrome_binary:
         chrome_options.binary_location = chrome_binary
 
     try:
         service = ChromeService(_resolve_chromedriver_binary())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        return driver
-    except Exception as e:
-        logger.error("Failed to initialize Chrome Driver: %s", e)
+        return webdriver.Chrome(service=service, options=chrome_options)
+    except Exception as exc:
+        logger.error("Failed to initialize Chrome Driver: %s", exc)
         return None
 
 
-def wait_for_first_visible(driver, selectors, timeout=20):
-    wait = WebDriverWait(driver, timeout)
-    last_error = None
+def capture_screenshots(targets):
+    screenshot_paths = []
+    if targets:
+        logger.info("Taking screenshots for targets: %s", ", ".join(targets))
 
-    for selector in selectors:
-        try:
-            logger.info("Waiting for selector: %s", selector)
-            return wait.until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, selector))
-            )
-        except Exception as exc:
-            last_error = exc
+    for target in targets:
+        capture = SCREENSHOT_HANDLERS.get(target)
+        if capture is None:
+            logger.warning("Unknown screenshot target in config: %s", target)
+            continue
+        screenshot_path = capture()
+        if screenshot_path:
+            screenshot_paths.append(screenshot_path)
 
-    if last_error:
-        raise last_error
-
-    raise RuntimeError("No selectors provided.")
+    return screenshot_paths
 
 
 def resize_window_for_element(driver, element, min_width=1600, padding=120):
@@ -187,61 +180,42 @@ def position_element_for_capture(driver, element, top_offset=160):
 
 
 def take_finviz_screenshot(output_path=None):
-    """
-    Takes a screenshot of the Finviz map (#canvas-wrapper).
-    """
     driver = get_chrome_driver()
     if not driver:
         return None
 
     try:
         output_path = resolve_output_path(output_path, "finviz_map")
-        url = "https://finviz.com/map.ashx"
-        logger.info("Navigating to %s...", url)
-        driver.get(url)
+        logger.info("Navigating to %s...", FINVIZ_URL)
+        driver.get(FINVIZ_URL)
 
-        # Wait for the map to load
         logger.info("Waiting for map element...")
-        wait = WebDriverWait(driver, 20)
-        element = wait.until(
+        element = WebDriverWait(driver, 20).until(
             EC.visibility_of_element_located((By.ID, "canvas-wrapper"))
         )
 
-        # Add delay to ensure canvas is rendered
         logger.info("Waiting for canvas to render...")
         time.sleep(5)
 
-        # Take screenshot of the element
         element.screenshot(output_path)
         logger.info("Screenshot saved to %s", output_path)
         return output_path
-
-    except Exception as e:
-        logger.exception("Failed to take screenshot: %s", e)
+    except Exception as exc:
+        logger.exception("Failed to take screenshot: %s", exc)
         return None
     finally:
-        if "driver" in locals() and driver:
-            driver.quit()
+        driver.quit()
 
 
 def take_kospi_screenshot(output_path=None):
-    """
-    Takes a screenshot of the KOSPI heatmap SVG from Hankyung market map.
-    """
-    return take_hankyung_marketmap_screenshot("kospi", output_path)
+    return _take_hankyung_marketmap_screenshot("kospi", output_path)
 
 
 def take_kosdaq_screenshot(output_path=None):
-    """
-    Takes a screenshot of the KOSDAQ heatmap from Hankyung market map.
-    """
-    return take_hankyung_marketmap_screenshot("kosdaq", output_path)
+    return _take_hankyung_marketmap_screenshot("kosdaq", output_path)
 
 
-def take_hankyung_marketmap_screenshot(market, output_path):
-    """
-    Takes a screenshot of the requested Hankyung market map container.
-    """
+def _take_hankyung_marketmap_screenshot(market, output_path):
     driver = get_chrome_driver()
     if not driver:
         return None
@@ -274,13 +248,11 @@ def take_hankyung_marketmap_screenshot(market, output_path):
                 logger.warning("Capture attempt %s failed: %s", attempt + 1, exc)
                 if attempt == 1:
                     raise
-
-    except Exception as e:
-        logger.exception("Failed to take %s screenshot: %s", market.upper(), e)
+    except Exception as exc:
+        logger.exception("Failed to take %s screenshot: %s", market.upper(), exc)
         return None
     finally:
-        if "driver" in locals() and driver:
-            driver.quit()
+        driver.quit()
 
 
 def _resolve_chrome_binary():
@@ -307,3 +279,10 @@ def _resolve_chromedriver_binary():
         )
 
     return ChromeDriverManager().install()
+
+
+SCREENSHOT_HANDLERS = {
+    "finviz": take_finviz_screenshot,
+    "kospi": take_kospi_screenshot,
+    "kosdaq": take_kosdaq_screenshot,
+}

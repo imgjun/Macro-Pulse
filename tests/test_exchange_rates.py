@@ -8,8 +8,8 @@ import pandas as pd
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-import data_fetcher
-from models import CnbcQuote
+from macro_pulse.data import market_data
+from macro_pulse.domain.models import CnbcQuote
 
 
 def make_history(values):
@@ -31,9 +31,9 @@ def print_exchange_snapshot(exchange):
 
 
 class ExchangeRateCalculationTests(unittest.TestCase):
-    @patch.dict(data_fetcher.YF_TICKERS, {}, clear=True)
+    @patch.dict(market_data.YF_TICKERS, {}, clear=True)
     @patch.dict(
-        data_fetcher.YF_RATES_HISTORY,
+        market_data.YF_RATES_HISTORY,
         {
             "USD/KRW": "KRW=X",
             "JPY/KRW": "JPYKRW=X",
@@ -42,7 +42,7 @@ class ExchangeRateCalculationTests(unittest.TestCase):
         clear=True,
     )
     @patch(
-        "data_fetcher.fetch_cnbc_data",
+        "macro_pulse.data.market_data.fetch_cnbc_data",
         return_value={
             "KRW=": CnbcQuote(
                 name="USD/KRW",
@@ -70,7 +70,7 @@ class ExchangeRateCalculationTests(unittest.TestCase):
             ),
         },
     )
-    @patch("data_fetcher.yf.Ticker")
+    @patch("macro_pulse.data.market_data.yf.Ticker")
     def test_fetch_all_data_builds_expected_exchange_results(
         self,
         mock_ticker,
@@ -93,7 +93,7 @@ class ExchangeRateCalculationTests(unittest.TestCase):
 
         mock_ticker.side_effect = ticker_side_effect
 
-        results = data_fetcher.fetch_all_data()
+        results = market_data.fetch_all_data()
 
         exchange = {item.name: item for item in results["exchange"]}
         usd_krw = exchange["USD/KRW"]
@@ -150,10 +150,10 @@ class ExchangeRateCalculationTests(unittest.TestCase):
 
         print_exchange_snapshot(exchange)
 
-    @patch.dict(data_fetcher.YF_TICKERS, {}, clear=True)
-    @patch.dict(data_fetcher.YF_RATES_HISTORY, {}, clear=True)
+    @patch.dict(market_data.YF_TICKERS, {}, clear=True)
+    @patch.dict(market_data.YF_RATES_HISTORY, {}, clear=True)
     @patch(
-        "data_fetcher.fetch_cnbc_data",
+        "macro_pulse.data.market_data.fetch_cnbc_data",
         return_value={
             ".KSVKOSPI": CnbcQuote(
                 name="VKOSPI",
@@ -179,7 +179,7 @@ class ExchangeRateCalculationTests(unittest.TestCase):
         self,
         _mock_cnbc,
     ):
-        results = data_fetcher.fetch_all_data()
+        results = market_data.fetch_all_data()
 
         volatility = {item.name: item for item in results["volatility"]}
         bonds = {item.name: item for item in results["commodities_rates"]}

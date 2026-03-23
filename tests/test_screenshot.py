@@ -5,7 +5,7 @@ import unittest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-from screenshot_utils import (
+from macro_pulse.reporting.screenshots import (
     take_finviz_screenshot,
     take_kosdaq_screenshot,
     take_kospi_screenshot,

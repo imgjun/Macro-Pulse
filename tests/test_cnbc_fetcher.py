@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-import cnbc_fetcher
-from models import ExchangeRates
+from macro_pulse.data.providers import cnbc as cnbc_fetcher
+from macro_pulse.domain.models import ExchangeRates
 
 
 SAMPLE_QUOTE_HTML = """
@@ -56,7 +56,7 @@ class CnbcFetcherTests(unittest.TestCase):
         self.assertAlmostEqual(quote.change, 7.05)
         self.assertAlmostEqual(quote.change_pct, 0.4684)
 
-    @patch("cnbc_fetcher.urlopen")
+    @patch("macro_pulse.data.providers.cnbc.urlopen")
     def test_fetch_cnbc_data_fetches_requested_symbols(self, mock_urlopen):
         response = MagicMock()
         response.__enter__.return_value = response

@@ -5,7 +5,7 @@ import unittest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-from cnbc_fetcher import (
+from macro_pulse.data.providers.cnbc import (
     CNBC_QUOTES,
     CNBC_FX_SYMBOLS,
     extract_cnbc_exchange_rates,

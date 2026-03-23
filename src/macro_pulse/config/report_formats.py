@@ -1,9 +1,9 @@
 import json
 import os
 from functools import lru_cache
-from pathlib import Path
 
-from models import ReportFormatConfig, normalize_report_format_config
+from ..core.paths import resolve_project_path
+from ..domain.models import ReportFormatConfig, normalize_report_format_config
 
 
 DEFAULT_REPORT_FORMAT_CONFIG = "config/report_formats.json"
@@ -15,12 +15,7 @@ def resolve_report_format_config_path(config_path=None):
         or os.environ.get("REPORT_FORMAT_CONFIG")
         or DEFAULT_REPORT_FORMAT_CONFIG
     )
-    path = Path(configured_path)
-    if path.is_absolute():
-        return path
-
-    project_root = Path(__file__).resolve().parents[1]
-    return project_root / path
+    return resolve_project_path(configured_path)
 
 
 @lru_cache(maxsize=8)

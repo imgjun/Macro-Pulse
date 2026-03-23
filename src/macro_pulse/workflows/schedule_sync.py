@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from models import ReportFormatConfig, normalize_report_format_config
-from report_format_config import load_report_format_config
+from ..config.report_formats import load_report_format_config
+from ..domain.models import ReportFormatConfig, normalize_report_format_config
 
 
 SCHEDULE_BLOCK_START = "    # BEGIN GENERATED SCHEDULES"

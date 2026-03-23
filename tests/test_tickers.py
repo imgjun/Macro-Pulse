@@ -7,13 +7,13 @@ import yfinance as yf
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-from cnbc_fetcher import (
+from macro_pulse.data.market_data import YF_TICKERS
+from macro_pulse.data.providers.cnbc import (
     CNBC_FX_SYMBOLS,
     CNBC_QUOTES,
     extract_cnbc_exchange_rates,
     fetch_cnbc_data,
 )
-from data_fetcher import YF_TICKERS
 
 
 @unittest.skipUnless(

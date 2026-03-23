@@ -6,14 +6,17 @@ import unittest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-from models import (
+from macro_pulse.domain.models import (
     AssetSnapshot,
     ModeFormatConfig,
     ReportFormatConfig,
     SummarySectionConfig,
     ValueFormat,
 )
-from report_generator import generate_html_report, generate_telegram_summary
+from macro_pulse.reporting.generator import (
+    generate_html_report,
+    generate_telegram_summary,
+)
 
 
 class ReportGeneratorTests(unittest.TestCase):

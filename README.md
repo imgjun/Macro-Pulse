@@ -111,9 +111,9 @@ RUN_SCREENSHOT_SMOKE_TESTS=1 uv run python -m unittest tests.test_screenshot
 ## 자주 보는 파일
 
 - [`src/main.py`](src/main.py): 전체 실행 시작점
-- [`src/data_fetcher.py`](src/data_fetcher.py): 데이터 수집
-- [`src/report_generator.py`](src/report_generator.py): 리포트 생성
-- [`src/notifier.py`](src/notifier.py): 텔레그램/이메일 전송
+- [`src/macro_pulse/data/market_data.py`](src/macro_pulse/data/market_data.py): 데이터 수집 orchestration
+- [`src/macro_pulse/reporting/generator.py`](src/macro_pulse/reporting/generator.py): 리포트 생성
+- [`src/macro_pulse/delivery/notifier.py`](src/macro_pulse/delivery/notifier.py): 텔레그램/이메일 전송
 - [`config/report_formats.json`](config/report_formats.json): 요약 포맷 설정
 
 ## 문제 해결

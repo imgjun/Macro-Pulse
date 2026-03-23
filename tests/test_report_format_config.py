@@ -7,13 +7,13 @@ import unittest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-from report_format_config import (
+from macro_pulse.config.report_formats import (
     get_screenshot_targets,
     get_workflow_schedule,
     load_report_format_config,
 )
-from report_generator import generate_telegram_summary
-from workflow_schedule_sync import (
+from macro_pulse.reporting.generator import generate_telegram_summary
+from macro_pulse.workflows.schedule_sync import (
     render_daily_workflow_schedule_block,
     workflow_matches_config,
 )

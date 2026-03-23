@@ -6,7 +6,7 @@ import unittest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-from artifact_utils import cleanup_files, resolve_output_path
+from macro_pulse.core.artifacts import cleanup_files, resolve_output_path
 
 
 class ScreenshotUtilsTests(unittest.TestCase):
