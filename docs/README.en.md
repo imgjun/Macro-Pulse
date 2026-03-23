@@ -108,11 +108,11 @@ RUN_SCREENSHOT_SMOKE_TESTS=1 python3 -m unittest tests.test_screenshot
 
 ### US Close Example
 
-![US close report example](../imgs/us.png)
+![US close report example](../assets/us.png)
 
 ### Korea Close Example
 
-![Korea close report example](../imgs/kr.png)
+![Korea close report example](../assets/kr.png)
 
 ## Useful Files
 

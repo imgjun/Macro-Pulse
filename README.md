@@ -102,11 +102,11 @@ RUN_SCREENSHOT_SMOKE_TESTS=1 python3 -m unittest tests.test_screenshot
 
 ### 미장 마감 예시
 
-![미장 마감 보고서 예시](imgs/us.png)
+![미장 마감 보고서 예시](assets/us.png)
 
 ### 국장 마감 예시
 
-![국장 마감 보고서 예시](imgs/kr.png)
+![국장 마감 보고서 예시](assets/kr.png)
 
 ## 자주 보는 파일
 
