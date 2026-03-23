@@ -25,7 +25,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Build runtime image
       run: docker build -t macro-pulse:test .
@@ -54,7 +54,7 @@ jobs:
 
     - name: Upload report artifact
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: telegram-test-${{ inputs.market }}
         path: |

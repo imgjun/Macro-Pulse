@@ -70,7 +70,7 @@ If you want to use this project from your own fork, set up these items first.
 
 1. Open the `Actions` tab in your fork and enable workflows.
 2. Add the Telegram/Email secrets in `Settings > Secrets and variables > Actions`.
-3. If you want the web report, enable `Settings > Pages` and use `gh-pages` as the deployment branch.
+3. If you want the web report, enable `Settings > Pages` and set the source to `GitHub Actions`.
 4. If needed, edit [`config/report_formats.json`](../config/report_formats.json) for KR/US format and schedule changes.
 
 ## Local / Docker Run
@@ -127,4 +127,4 @@ RUN_SCREENSHOT_SMOKE_TESTS=1 uv run python -m unittest tests.test_screenshot
 - If screenshots fail, check your Chrome/Chromium setup first.
 - If Telegram messages do not arrive, re-check `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.
 - If some numbers are missing, an external data source may have failed.
-- If GitHub Pages does not update, check the `gh-pages` settings.
+- If GitHub Pages does not update, check that `Settings > Pages` uses `GitHub Actions` as the source.

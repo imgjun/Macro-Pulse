@@ -64,7 +64,7 @@ Fork해서 바로 쓰려면 아래만 먼저 설정하면 됩니다.
 
 1. Fork한 저장소의 `Actions` 탭에서 워크플로를 활성화합니다.
 2. `Settings > Secrets and variables > Actions`에서 Telegram/Email Secret을 등록합니다.
-3. 웹 리포트도 보고 싶다면 `Settings > Pages`에서 `gh-pages`를 배포 브랜치로 설정합니다.
+3. 웹 리포트도 보고 싶다면 `Settings > Pages`에서 source를 `GitHub Actions`로 설정합니다.
 4. 필요하면 [`config/report_formats.json`](config/report_formats.json)에서 KR/US 포맷과 스케줄을 바꿉니다.
 
 ## 로컬 / Docker 실행
@@ -121,4 +121,4 @@ RUN_SCREENSHOT_SMOKE_TESTS=1 uv run python -m unittest tests.test_screenshot
 - 스크린샷이 실패하면 Chrome/Chromium 실행 환경을 먼저 확인하세요.
 - 텔레그램 메시지가 안 오면 `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`를 확인하세요.
 - 일부 데이터가 비어 있으면 외부 사이트 응답 문제일 수 있습니다.
-- GitHub Pages가 안 보이면 `gh-pages` 설정을 확인하세요.
+- GitHub Pages가 안 보이면 `Settings > Pages`에서 source가 `GitHub Actions`로 설정되어 있는지 확인하세요.
