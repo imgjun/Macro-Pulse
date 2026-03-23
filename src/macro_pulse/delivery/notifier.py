@@ -1,8 +1,5 @@
 import os
-import smtplib
 from asyncio import sleep
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 from telegram import Bot
 
@@ -51,26 +48,3 @@ async def send_telegram_report(
                 logger.exception("Telegram delivery failed after retries")
                 return False
             await sleep(1)
-
-
-def send_email_report(smtp_user, smtp_password, recipient_email, html_content):
-    if not smtp_user or not smtp_password or not recipient_email:
-        logger.info("SMTP credentials or recipient email missing. Skipping Email.")
-        return False
-
-    try:
-        message = MIMEMultipart("alternative")
-        message["Subject"] = "Daily Macro Pulse Report"
-        message["From"] = smtp_user
-        message["To"] = recipient_email
-        message.attach(MIMEText(html_content, "html"))
-
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_password)
-            server.sendmail(smtp_user, recipient_email, message.as_string())
-        logger.info("Email report sent.")
-        return True
-    except Exception as exc:
-        logger.exception("Failed to send Email: %s", exc)
-        return False

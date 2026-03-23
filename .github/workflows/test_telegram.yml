@@ -17,9 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REPORT_FORMAT_CONFIG: config/report_formats.json
-      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
-      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
-      RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
@@ -42,9 +39,6 @@ jobs:
       run: |
         docker run --rm \
           -e REPORT_FORMAT_CONFIG \
-          -e SMTP_USERNAME \
-          -e SMTP_PASSWORD \
-          -e RECIPIENT_EMAIL \
           -e TELEGRAM_BOT_TOKEN \
           -e TELEGRAM_CHAT_ID \
           -v "$PWD:/app" \

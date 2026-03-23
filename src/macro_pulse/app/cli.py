@@ -11,7 +11,7 @@ from ..config.report_formats import get_screenshot_targets, load_report_format_c
 from ..core.artifacts import cleanup_files
 from ..core.logging import configure_logging, get_logger
 from ..data.market_data import fetch_all_data
-from ..delivery.notifier import send_email_report, send_telegram_report
+from ..delivery.notifier import send_telegram_report
 from ..reporting.generator import generate_html_report, generate_telegram_summary
 from ..reporting.screenshots import capture_screenshots
 
@@ -73,9 +73,6 @@ async def main(argv: list[str] | None = None) -> int:
     try:
         telegram_token = os.environ.get("TELEGRAM_BOT_TOKEN")
         telegram_chat_id = os.environ.get("TELEGRAM_CHAT_ID")
-        smtp_user = os.environ.get("SMTP_USERNAME")
-        smtp_password = os.environ.get("SMTP_PASSWORD")
-        recipient_email = os.environ.get("RECIPIENT_EMAIL") or smtp_user
 
         if telegram_token and telegram_chat_id:
             await send_telegram_report(
@@ -84,9 +81,6 @@ async def main(argv: list[str] | None = None) -> int:
                 telegram_summary,
                 image_paths=screenshot_paths,
             )
-
-        if smtp_user and smtp_password and recipient_email:
-            send_email_report(smtp_user, smtp_password, recipient_email, html_report)
     finally:
         cleanup_files(screenshot_paths)
 

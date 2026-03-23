@@ -71,7 +71,6 @@ class MainTests(unittest.IsolatedAsyncioTestCase):
                     "macro_pulse.app.cli.send_telegram_report",
                     new_callable=AsyncMock,
                 ) as telegram,
-                patch("macro_pulse.app.cli.send_email_report") as email,
             ):
                 previous_cwd = os.getcwd()
                 os.chdir(temp_dir)
@@ -88,4 +87,3 @@ class MainTests(unittest.IsolatedAsyncioTestCase):
             html_report.assert_called_once_with(data)
             telegram_summary.assert_called_once_with(data, "US", config)
             telegram.assert_not_awaited()
-            email.assert_not_called()

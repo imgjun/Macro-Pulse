@@ -23,14 +23,9 @@ Create a `.env` file in the project root.
 ```ini
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 TELEGRAM_CHAT_ID=your_chat_id_here
-
-SMTP_USERNAME=your_email@gmail.com
-SMTP_PASSWORD=your_app_password_here
-RECIPIENT_EMAIL=recipient_email@example.com
 ```
 
 - If Telegram values are missing, Telegram delivery is skipped.
-- If email values are missing, email delivery is skipped.
 
 ### Generate only the report
 

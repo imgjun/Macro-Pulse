@@ -6,7 +6,7 @@ Macro Pulse Bot is an automation project that collects market data and turns it 
 
 - It gathers market data.
 - It creates an HTML report.
-- It can send the result to Telegram or email.
+- It can send the result to Telegram.
 - It can run automatically with GitHub Actions.
 
 If you are not familiar with finance, the easiest way to think about it is: "a bot that collects important market numbers and summarizes them."
@@ -27,7 +27,7 @@ The flow is simple.
 1. Fetch data from Yahoo Finance and CNBC quote pages.
 2. Clean up and organize the data.
 3. Create an HTML report and Telegram summary text.
-4. Optionally send the result by Telegram or email.
+4. Optionally send the result by Telegram.
 
 The real entry point is [`src/main.py`](../src/main.py).
 
@@ -69,7 +69,7 @@ You do not need deep Python knowledge for simple ordering changes.
 If you want to use this project from your own fork, set up these items first.
 
 1. Open the `Actions` tab in your fork and enable workflows.
-2. Add the Telegram/Email secrets in `Settings > Secrets and variables > Actions`.
+2. Add the Telegram secrets in `Settings > Secrets and variables > Actions`.
 3. If you want the web report, enable `Settings > Pages` and set the source to `GitHub Actions`.
 4. If needed, edit [`config/report_formats.json`](../config/report_formats.json) for KR/US format and schedule changes.
 
@@ -119,7 +119,7 @@ RUN_SCREENSHOT_SMOKE_TESTS=1 uv run python -m unittest tests.test_screenshot
 - [`src/main.py`](../src/main.py): app entry point
 - [`src/macro_pulse/data/market_data.py`](../src/macro_pulse/data/market_data.py): data collection orchestration
 - [`src/macro_pulse/reporting/generator.py`](../src/macro_pulse/reporting/generator.py): report creation
-- [`src/macro_pulse/delivery/notifier.py`](../src/macro_pulse/delivery/notifier.py): Telegram/email delivery
+- [`src/macro_pulse/delivery/notifier.py`](../src/macro_pulse/delivery/notifier.py): Telegram delivery
 - [`config/report_formats.json`](../config/report_formats.json): summary format settings
 
 ## Troubleshooting

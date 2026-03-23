@@ -1,12 +1,12 @@
 import os
 import sys
 import unittest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-from macro_pulse.delivery.notifier import send_email_report, send_telegram_report
+from macro_pulse.delivery.notifier import send_telegram_report
 
 
 class NotifierTests(unittest.IsolatedAsyncioTestCase):
@@ -30,24 +30,3 @@ class NotifierTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result)
         bot.send_message.assert_awaited_once_with(chat_id="chat-id", text="hello")
         bot.send_photo.assert_awaited_once()
-
-    def test_send_email_report_uses_smtp_context_manager(self):
-        smtp = MagicMock()
-        smtp.__enter__.return_value = smtp
-        smtp.__exit__.return_value = False
-
-        with patch(
-            "macro_pulse.delivery.notifier.smtplib.SMTP", return_value=smtp
-        ) as smtp_cls:
-            result = send_email_report(
-                "user@example.com",
-                "password",
-                "target@example.com",
-                "<html>Report</html>",
-            )
-
-        self.assertTrue(result)
-        smtp_cls.assert_called_once_with("smtp.gmail.com", 587, timeout=30)
-        smtp.starttls.assert_called_once()
-        smtp.login.assert_called_once_with("user@example.com", "password")
-        smtp.sendmail.assert_called_once()

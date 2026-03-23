@@ -23,14 +23,9 @@ uv sync --all-groups
 ```ini
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 TELEGRAM_CHAT_ID=your_chat_id_here
-
-SMTP_USERNAME=your_email@gmail.com
-SMTP_PASSWORD=your_app_password_here
-RECIPIENT_EMAIL=recipient_email@example.com
 ```
 
 - 텔레그램 값이 없으면 텔레그램 전송은 건너뜁니다.
-- 이메일 값이 없으면 이메일 전송은 건너뜁니다.
 
 ### 리포트만 생성
 
