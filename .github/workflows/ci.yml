@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    if: ${{ github.event_name != 'push' || github.event.head_commit.message != 'chore: keep workflows active' }}
+    if: "${{ github.event_name != 'push' || github.event.head_commit.message != 'chore: keep workflows active' }}"
     runs-on: ubuntu-latest
 
     steps:
