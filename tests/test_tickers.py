@@ -7,9 +7,13 @@ import yfinance as yf
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
-from cnbc_fetcher import CNBC_QUOTES, fetch_cnbc_data
+from cnbc_fetcher import (
+    CNBC_FX_SYMBOLS,
+    CNBC_QUOTES,
+    extract_cnbc_exchange_rates,
+    fetch_cnbc_data,
+)
 from data_fetcher import YF_TICKERS
-from frankfurter_fetcher import fetch_frankfurter_rates
 
 
 @unittest.skipUnless(
@@ -25,8 +29,8 @@ class ProviderSmokeTests(unittest.TestCase):
                     self.assertFalse(history.empty)
                     self.assertGreater(float(history["Close"].iloc[-1]), 0)
 
-    def test_frankfurter_returns_expected_pairs(self):
-        rates = fetch_frankfurter_rates()
+    def test_cnbc_fx_pages_return_expected_pairs(self):
+        rates = extract_cnbc_exchange_rates(fetch_cnbc_data(list(CNBC_FX_SYMBOLS)))
         self.assertGreater(rates.usd_krw or 0, 0)
         self.assertGreater(rates.usd_jpy or 0, 0)
         self.assertGreater(rates.eur_usd or 0, 0)

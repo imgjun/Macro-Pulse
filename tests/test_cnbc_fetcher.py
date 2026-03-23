@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
 import cnbc_fetcher
+from models import ExchangeRates
 
 
 SAMPLE_QUOTE_HTML = """
@@ -47,6 +48,24 @@ class CnbcFetcherTests(unittest.TestCase):
         self.assertAlmostEqual(quotes["KR10Y"].price, 3.629)
         self.assertAlmostEqual(quotes["KR10Y"].change, -0.112)
         self.assertEqual(quotes["KR10Y"].name, "Korea 10Y Treasury")
+
+    def test_extract_cnbc_exchange_rates_maps_expected_currency_pairs(self):
+        quotes = {
+            "KRW=": {"price": 1330.0, "change": 2.0, "change_pct": 0.15},
+            "JPY=": {"price": 150.0, "change": 1.0, "change_pct": 0.67},
+            "CNY=": {"price": 7.2, "change": 0.1, "change_pct": 1.41},
+            "EUR=": {"price": 1.08, "change": 0.01, "change_pct": 0.93},
+        }
+
+        self.assertEqual(
+            cnbc_fetcher.extract_cnbc_exchange_rates(quotes),
+            ExchangeRates(
+                usd_krw=1330.0,
+                usd_jpy=150.0,
+                usd_cny=7.2,
+                eur_usd=1.08,
+            ),
+        )
 
 
 if __name__ == "__main__":

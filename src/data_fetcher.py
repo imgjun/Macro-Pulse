@@ -3,8 +3,12 @@ import tempfile
 
 import yfinance as yf
 
-from cnbc_fetcher import fetch_cnbc_data
-from frankfurter_fetcher import fetch_frankfurter_rates
+from cnbc_fetcher import (
+    CNBC_FX_SYMBOLS,
+    CNBC_MARKET_SYMBOLS,
+    extract_cnbc_exchange_rates,
+    fetch_cnbc_data,
+)
 from logging_utils import get_logger
 from models import (
     AssetSnapshot,
@@ -12,7 +16,6 @@ from models import (
     TickerDefinition,
     ValueFormat,
     coerce_cnbc_quote,
-    coerce_exchange_rates,
 )
 
 
@@ -52,13 +55,6 @@ YF_RATES_HISTORY = {
     "EUR/KRW": "EURKRW=X",
 }
 
-# CNBC Symbols to fetch
-CNBC_SYMBOLS = [
-    ".KSVKOSPI",  # VKOSPI
-    "JP10Y",  # Japan 10Y
-    "KR10Y",  # Korea 10Y
-]
-
 
 def fetch_all_data() -> ReportDataset:
     _configure_runtime_cache()
@@ -84,11 +80,11 @@ def fetch_all_data() -> ReportDataset:
 
     # 1. Fetch CNBC Data
     logger.info("Fetching CNBC data...")
-    cnbc_data = fetch_cnbc_data(CNBC_SYMBOLS)
+    cnbc_data = fetch_cnbc_data([*CNBC_MARKET_SYMBOLS, *CNBC_FX_SYMBOLS])
 
-    # 2. Fetch FX rates from Frankfurter
-    logger.info("Fetching Frankfurter FX data...")
-    fx_data = coerce_exchange_rates(fetch_frankfurter_rates())
+    # 2. Build FX rates from CNBC quote pages
+    logger.info("Building FX data from CNBC quotes...")
+    fx_data = extract_cnbc_exchange_rates(cnbc_data)
     usd_krw = fx_data.usd_krw
     usd_jpy = fx_data.usd_jpy
     eur_usd = fx_data.eur_usd
@@ -121,21 +117,33 @@ def fetch_all_data() -> ReportDataset:
             value_format=value_format,
         )
 
+    def previous_close_from_cnbc(symbol):
+        quote = cnbc_data.get(symbol)
+        if quote is None:
+            return None
+
+        normalized = coerce_cnbc_quote(quote)
+        return normalized.price - normalized.change
+
+    def cross_change(current_price, previous_price):
+        if current_price is None or previous_price in (None, 0):
+            return 0, 0
+
+        change = current_price - previous_price
+        return change, (change / previous_price) * 100
+
     # Exchange Rates Calculation
     if usd_krw:
         # USD/KRW
-        # Hybrid: Use Frankfurter price, but YF History/Change if available
         yf_hist = yf_rates_data.get("USD/KRW")
-        price = usd_krw
-        change = 0
-        change_pct = 0
+        usd_krw_quote = coerce_cnbc_quote(cnbc_data["KRW="])
+        price = usd_krw_quote.price
+        change = usd_krw_quote.change
+        change_pct = usd_krw_quote.change_pct
         history = [price]
 
         if yf_hist is not None and not yf_hist.empty:
             history = yf_hist["Close"].tail(7).tolist()
-            prev_close = yf_hist["Close"].iloc[-2] if len(yf_hist) > 1 else price
-            change = price - prev_close
-            change_pct = (change / prev_close) * 100
 
         results["exchange"].append(
             create_item("USD/KRW", price, change, change_pct, history)
@@ -144,22 +152,20 @@ def fetch_all_data() -> ReportDataset:
         # JPY/KRW
         if usd_jpy:
             price_jpykrw = (usd_krw / usd_jpy) * 100  # JPY/KRW (100 Yen)
-            change = 0
-            change_pct = 0
+            prev_usd_krw = previous_close_from_cnbc("KRW=")
+            prev_usd_jpy = previous_close_from_cnbc("JPY=")
+            previous_jpykrw = None
+            if prev_usd_krw not in (None, 0) and prev_usd_jpy not in (None, 0):
+                previous_jpykrw = (prev_usd_krw / prev_usd_jpy) * 100
+            change, change_pct = cross_change(price_jpykrw, previous_jpykrw)
             history = [price_jpykrw]
 
-            # Hybrid YF
             yf_hist = yf_rates_data.get("JPY/KRW")
             if yf_hist is not None and not yf_hist.empty:
                 # Yahoo Finance JPYKRW=X is per 1 JPY (~9.x), but we use per 100 JPY (~9xx).
                 # Scale YF history by 100
                 history_scaled = yf_hist["Close"] * 100
                 history = history_scaled.tail(7).tolist()
-                prev_close = (
-                    history_scaled.iloc[-2] if len(history_scaled) > 1 else price_jpykrw
-                )
-                change = price_jpykrw - prev_close
-                change_pct = (change / prev_close) * 100
 
             results["exchange"].append(
                 create_item("JPY/KRW", price_jpykrw, change, change_pct, history)
@@ -168,33 +174,37 @@ def fetch_all_data() -> ReportDataset:
         # EUR/KRW
         if eur_usd:
             price_eurkrw = usd_krw * eur_usd
-            change = 0
-            change_pct = 0
+            prev_usd_krw = previous_close_from_cnbc("KRW=")
+            prev_eur_usd = previous_close_from_cnbc("EUR=")
+            previous_eurkrw = None
+            if prev_usd_krw not in (None, 0) and prev_eur_usd not in (None, 0):
+                previous_eurkrw = prev_usd_krw * prev_eur_usd
+            change, change_pct = cross_change(price_eurkrw, previous_eurkrw)
             history = [price_eurkrw]
 
-            # Hybrid YF
             yf_hist = yf_rates_data.get("EUR/KRW")
             if yf_hist is not None and not yf_hist.empty:
                 history = yf_hist["Close"].tail(7).tolist()
-                prev_close = (
-                    yf_hist["Close"].iloc[-2] if len(yf_hist) > 1 else price_eurkrw
-                )
-                change = price_eurkrw - prev_close
-                change_pct = (change / prev_close) * 100
 
             results["exchange"].append(
                 create_item("EUR/KRW", price_eurkrw, change, change_pct, history)
             )
 
-        # CNY/KRW (Blank Change/Trend)
+        # CNY/KRW
         if usd_cny:
             price = usd_krw / usd_cny
+            prev_usd_krw = previous_close_from_cnbc("KRW=")
+            prev_usd_cny = previous_close_from_cnbc("CNY=")
+            previous_cnykrw = None
+            if prev_usd_krw not in (None, 0) and prev_usd_cny not in (None, 0):
+                previous_cnykrw = prev_usd_krw / prev_usd_cny
+            change, change_pct = cross_change(price, previous_cnykrw)
             results["exchange"].append(
-                create_item("CNY/KRW", price, 0, 0, use_blank=True)
+                create_item("CNY/KRW", price, change, change_pct)
             )
 
     else:
-        logger.warning("Frankfurter FX rates failed. Data might be incomplete.")
+        logger.warning("CNBC FX quotes failed. Data might be incomplete.")
 
     # Add other CNBC items (Blank Change/Trend)
     # VKOSPI

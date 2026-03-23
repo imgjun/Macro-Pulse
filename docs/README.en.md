@@ -24,7 +24,7 @@ If you are not familiar with finance, the easiest way to think about it is: "a b
 
 The flow is simple.
 
-1. Fetch data from Yahoo Finance, Frankfurter, and CNBC.
+1. Fetch data from Yahoo Finance and CNBC quote pages.
 2. Clean up and organize the data.
 3. Create an HTML report and Telegram summary text.
 4. Optionally send the result by Telegram or email.

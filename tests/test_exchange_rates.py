@@ -1,4 +1,3 @@
-import json
 import os
 import sys
 import unittest
@@ -10,7 +9,6 @@ import pandas as pd
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
 import data_fetcher
-import frankfurter_fetcher
 from models import CnbcQuote, ExchangeRates
 
 
@@ -32,51 +30,6 @@ def print_exchange_snapshot(exchange):
     print(f"CNY/KRW: {exchange['CNY/KRW'].price:.2f}")
 
 
-class FrankfurterFetcherTests(unittest.TestCase):
-    @patch("frankfurter_fetcher.urlopen")
-    def test_fetch_frankfurter_rates_maps_expected_currency_pairs(self, mock_urlopen):
-        usd_response = MagicMock()
-        usd_response.__enter__.return_value = usd_response
-        usd_response.__exit__.return_value = False
-        usd_response.read.return_value = json.dumps(
-            {"rates": {"KRW": 1330.0, "JPY": 150.0, "CNY": 7.2}}
-        ).encode("utf-8")
-
-        eur_response = MagicMock()
-        eur_response.__enter__.return_value = eur_response
-        eur_response.__exit__.return_value = False
-        eur_response.read.return_value = json.dumps({"rates": {"USD": 1.08}}).encode(
-            "utf-8"
-        )
-
-        mock_urlopen.side_effect = [usd_response, eur_response]
-
-        rates = frankfurter_fetcher.fetch_frankfurter_rates()
-
-        self.assertEqual(
-            rates,
-            ExchangeRates(
-                usd_krw=1330.0,
-                usd_jpy=150.0,
-                eur_usd=1.08,
-                usd_cny=7.2,
-            ),
-        )
-        self.assertEqual(mock_urlopen.call_count, 2)
-        usd_request = mock_urlopen.call_args_list[0].args[0]
-        eur_request = mock_urlopen.call_args_list[1].args[0]
-
-        self.assertIn("base=USD", usd_request.full_url)
-        self.assertIn("symbols=KRW%2CJPY%2CCNY", usd_request.full_url)
-        self.assertEqual(usd_request.get_header("User-agent"), "Macro-Pulse/1.0")
-        self.assertEqual(usd_request.get_header("Accept"), "application/json")
-
-        self.assertIn("base=EUR", eur_request.full_url)
-        self.assertIn("symbols=USD", eur_request.full_url)
-        self.assertEqual(eur_request.get_header("User-agent"), "Macro-Pulse/1.0")
-        self.assertEqual(eur_request.get_header("Accept"), "application/json")
-
-
 class ExchangeRateCalculationTests(unittest.TestCase):
     @patch.dict(data_fetcher.YF_TICKERS, {}, clear=True)
     @patch.dict(
@@ -88,21 +41,39 @@ class ExchangeRateCalculationTests(unittest.TestCase):
         },
         clear=True,
     )
-    @patch("data_fetcher.fetch_cnbc_data", return_value={})
     @patch(
-        "data_fetcher.fetch_frankfurter_rates",
-        return_value=ExchangeRates(
-            usd_krw=1330.0,
-            usd_jpy=150.0,
-            eur_usd=1.08,
-            usd_cny=7.2,
-        ),
+        "data_fetcher.fetch_cnbc_data",
+        return_value={
+            "KRW=": CnbcQuote(
+                name="USD/KRW",
+                price=1330.0,
+                change=2.0,
+                change_pct=(2.0 / 1328.0) * 100,
+            ),
+            "JPY=": CnbcQuote(
+                name="USD/JPY",
+                price=150.0,
+                change=1.0,
+                change_pct=(1.0 / 149.0) * 100,
+            ),
+            "EUR=": CnbcQuote(
+                name="EUR/USD",
+                price=1.08,
+                change=0.01,
+                change_pct=(0.01 / 1.07) * 100,
+            ),
+            "CNY=": CnbcQuote(
+                name="USD/CNY",
+                price=7.2,
+                change=0.1,
+                change_pct=(0.1 / 7.1) * 100,
+            ),
+        },
     )
     @patch("data_fetcher.yf.Ticker")
     def test_fetch_all_data_builds_expected_exchange_results(
         self,
         mock_ticker,
-        _mock_fx,
         _mock_cnbc,
     ):
         history_by_ticker = {
@@ -140,11 +111,12 @@ class ExchangeRateCalculationTests(unittest.TestCase):
         )
 
         expected_jpy_krw = (1330.0 / 150.0) * 100
+        previous_jpy_krw = (1328.0 / 149.0) * 100
         self.assertAlmostEqual(jpy_krw.price, expected_jpy_krw)
-        self.assertAlmostEqual(jpy_krw.change, expected_jpy_krw - 925.0)
+        self.assertAlmostEqual(jpy_krw.change, expected_jpy_krw - previous_jpy_krw)
         self.assertAlmostEqual(
             jpy_krw.change_pct,
-            ((expected_jpy_krw - 925.0) / 925.0) * 100,
+            ((expected_jpy_krw - previous_jpy_krw) / previous_jpy_krw) * 100,
         )
         assert_float_list_almost_equal(
             self,
@@ -153,11 +125,12 @@ class ExchangeRateCalculationTests(unittest.TestCase):
         )
 
         expected_eur_krw = 1330.0 * 1.08
+        previous_eur_krw = 1328.0 * 1.07
         self.assertAlmostEqual(eur_krw.price, expected_eur_krw)
-        self.assertAlmostEqual(eur_krw.change, expected_eur_krw - 1434.0)
+        self.assertAlmostEqual(eur_krw.change, expected_eur_krw - previous_eur_krw)
         self.assertAlmostEqual(
             eur_krw.change_pct,
-            ((expected_eur_krw - 1434.0) / 1434.0) * 100,
+            ((expected_eur_krw - previous_eur_krw) / previous_eur_krw) * 100,
         )
         assert_float_list_almost_equal(
             self,
@@ -165,10 +138,15 @@ class ExchangeRateCalculationTests(unittest.TestCase):
             [1420.0, 1425.0, 1428.0, 1430.0, 1432.0, 1434.0, 1435.0],
         )
 
-        self.assertAlmostEqual(cny_krw.price, 1330.0 / 7.2)
-        self.assertIsNone(cny_krw.change)
-        self.assertIsNone(cny_krw.change_pct)
-        self.assertEqual(cny_krw.history, [])
+        expected_cny_krw = 1330.0 / 7.2
+        previous_cny_krw = 1328.0 / 7.1
+        self.assertAlmostEqual(cny_krw.price, expected_cny_krw)
+        self.assertAlmostEqual(cny_krw.change, expected_cny_krw - previous_cny_krw)
+        self.assertAlmostEqual(
+            cny_krw.change_pct,
+            ((expected_cny_krw - previous_cny_krw) / previous_cny_krw) * 100,
+        )
+        self.assertEqual(cny_krw.history, [expected_cny_krw])
 
         print_exchange_snapshot(exchange)
 
@@ -197,10 +175,8 @@ class ExchangeRateCalculationTests(unittest.TestCase):
             ),
         },
     )
-    @patch("data_fetcher.fetch_frankfurter_rates", return_value=ExchangeRates())
     def test_fetch_all_data_keeps_cnbc_daily_change_values(
         self,
-        _mock_fx,
         _mock_cnbc,
     ):
         results = data_fetcher.fetch_all_data()

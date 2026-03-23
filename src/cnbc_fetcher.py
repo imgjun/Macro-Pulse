@@ -2,16 +2,17 @@ import re
 import time
 from html import unescape
 from html.parser import HTMLParser
+from typing import Mapping
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from logging_utils import get_logger
-from models import CnbcQuote
+from models import CnbcQuote, ExchangeRates, coerce_cnbc_quote
 
 
 logger = get_logger(__name__)
 
-CNBC_QUOTES = {
+CNBC_MARKET_QUOTES = {
     ".KSVKOSPI": {
         "name": "VKOSPI",
         "url": "https://www.cnbc.com/quotes/.KSVKOSPI",
@@ -25,6 +26,29 @@ CNBC_QUOTES = {
         "url": "https://www.cnbc.com/quotes/KR10Y",
     },
 }
+
+CNBC_FX_QUOTES = {
+    "JPY=": {
+        "name": "USD/JPY",
+        "url": "https://www.cnbc.com/quotes/jpy=",
+    },
+    "KRW=": {
+        "name": "USD/KRW",
+        "url": "https://www.cnbc.com/quotes/krw=",
+    },
+    "CNY=": {
+        "name": "USD/CNY",
+        "url": "https://www.cnbc.com/quotes/cny=",
+    },
+    "EUR=": {
+        "name": "EUR/USD",
+        "url": "https://www.cnbc.com/quotes/eur=",
+    },
+}
+
+CNBC_QUOTES = {**CNBC_MARKET_QUOTES, **CNBC_FX_QUOTES}
+CNBC_MARKET_SYMBOLS = tuple(CNBC_MARKET_QUOTES)
+CNBC_FX_SYMBOLS = tuple(CNBC_FX_QUOTES)
 
 REQUEST_HEADERS = {
     "User-Agent": (
@@ -198,7 +222,7 @@ def fetch_cnbc_quote(symbol, attempts=3, retry_delay=1):
 def fetch_cnbc_data(symbols):
     """
     Fetch quote data directly from CNBC quote pages.
-    symbols: list of ticker strings (e.g., [".KSVKOSPI", "JP10Y", "KR10Y"])
+    symbols: list of ticker strings (e.g., [".KSVKOSPI", "JP10Y", "KR10Y", "KRW="])
     Returns: dict {symbol: {'price': float, 'change': float, 'change_pct': float, 'name': str}}
     """
     results = {}
@@ -216,3 +240,20 @@ def fetch_cnbc_data(symbols):
             logger.exception("Unexpected CNBC fetch error for %s", symbol)
 
     return results
+
+
+def extract_cnbc_exchange_rates(
+    quotes: Mapping[str, CnbcQuote | Mapping[str, float | str]],
+) -> ExchangeRates:
+    def get_price(symbol):
+        quote = quotes.get(symbol)
+        if quote is None:
+            return None
+        return coerce_cnbc_quote(quote).price
+
+    return ExchangeRates(
+        usd_krw=get_price("KRW="),
+        usd_jpy=get_price("JPY="),
+        eur_usd=get_price("EUR="),
+        usd_cny=get_price("CNY="),
+    )
