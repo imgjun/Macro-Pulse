@@ -9,7 +9,7 @@ import pandas as pd
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
 import data_fetcher
-from models import CnbcQuote, ExchangeRates
+from models import CnbcQuote
 
 
 def make_history(values):
@@ -23,7 +23,7 @@ def assert_float_list_almost_equal(test_case, actual, expected):
 
 
 def print_exchange_snapshot(exchange):
-    print("\nCalculated exchange rates:")
+    print("\nCalculated exchange rates from mocked CNBC test data:")
     print(f"USD/KRW: {exchange['USD/KRW'].price:.2f}")
     print(f"JPY/KRW (100 JPY): {exchange['JPY/KRW'].price:.2f}")
     print(f"EUR/KRW: {exchange['EUR/KRW'].price:.2f}")

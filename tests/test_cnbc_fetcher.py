@@ -25,6 +25,21 @@ SAMPLE_QUOTE_HTML = """
 </html>
 """
 
+SAMPLE_FX_QUOTE_HTML = """
+<html>
+  <body>
+    <div class="QuoteStrip-lastPriceStripContainer">
+      <span class="QuoteStrip-lastPrice">1,512.30</span>
+      <span class="QuoteStrip-changeUp">
+        <img class="QuoteStrip-changeIcon" src="icon.svg" alt="quote price arrow up">
+        <span>+7.05</span>
+        <span> (<!-- -->+0.4684%<!-- -->)</span>
+      </span>
+    </div>
+  </body>
+</html>
+"""
+
 
 class CnbcFetcherTests(unittest.TestCase):
     def test_parse_cnbc_quote_extracts_price_and_daily_change(self):
@@ -33,6 +48,13 @@ class CnbcFetcherTests(unittest.TestCase):
         self.assertAlmostEqual(quote.price, 3.629)
         self.assertAlmostEqual(quote.change, -0.112)
         self.assertAlmostEqual(quote.change_pct, -2.99)
+
+    def test_parse_cnbc_quote_extracts_fx_price_with_comments(self):
+        quote = cnbc_fetcher.parse_cnbc_quote(SAMPLE_FX_QUOTE_HTML)
+
+        self.assertAlmostEqual(quote.price, 1512.30)
+        self.assertAlmostEqual(quote.change, 7.05)
+        self.assertAlmostEqual(quote.change_pct, 0.4684)
 
     @patch("cnbc_fetcher.urlopen")
     def test_fetch_cnbc_data_fetches_requested_symbols(self, mock_urlopen):
