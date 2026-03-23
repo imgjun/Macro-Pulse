@@ -11,8 +11,10 @@ from notifier import send_email_report, send_telegram_report
 
 class NotifierTests(unittest.IsolatedAsyncioTestCase):
     async def test_send_telegram_report_sends_message_and_images(self):
-        with patch("notifier.Bot") as bot_cls, patch("notifier.os.path.exists", return_value=True), patch(
-            "builtins.open", unittest.mock.mock_open(read_data=b"image")
+        with (
+            patch("notifier.Bot") as bot_cls,
+            patch("notifier.os.path.exists", return_value=True),
+            patch("builtins.open", unittest.mock.mock_open(read_data=b"image")),
         ):
             bot = AsyncMock()
             bot_cls.return_value = bot

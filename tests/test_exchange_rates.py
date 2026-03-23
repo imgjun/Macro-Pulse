@@ -106,9 +106,13 @@ class ExchangeRateCalculationTests(unittest.TestCase):
         _mock_cnbc,
     ):
         history_by_ticker = {
-            "KRW=X": make_history([1310.0, 1315.0, 1320.0, 1322.0, 1324.0, 1328.0, 1329.0]),
+            "KRW=X": make_history(
+                [1310.0, 1315.0, 1320.0, 1322.0, 1324.0, 1328.0, 1329.0]
+            ),
             "JPYKRW=X": make_history([9.0, 9.05, 9.1, 9.15, 9.2, 9.25, 9.3]),
-            "EURKRW=X": make_history([1420.0, 1425.0, 1428.0, 1430.0, 1432.0, 1434.0, 1435.0]),
+            "EURKRW=X": make_history(
+                [1420.0, 1425.0, 1428.0, 1430.0, 1432.0, 1434.0, 1435.0]
+            ),
         }
 
         def ticker_side_effect(symbol):

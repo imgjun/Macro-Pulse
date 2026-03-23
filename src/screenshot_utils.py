@@ -22,7 +22,9 @@ except ImportError:  # pragma: no cover - exercised in environments without sele
 
 try:
     from webdriver_manager.chrome import ChromeDriverManager
-except ImportError:  # pragma: no cover - exercised in environments without webdriver-manager
+except (
+    ImportError
+):  # pragma: no cover - exercised in environments without webdriver-manager
     ChromeDriverManager = None
 
 
@@ -252,10 +254,10 @@ def take_hankyung_marketmap_screenshot(market, output_path):
             logger.info("Navigating to %s... (attempt %s)", url, attempt + 1)
             driver.get(url)
             WebDriverWait(driver, 30).until(
-                lambda current_driver: current_driver.execute_script(
-                    "return document.readyState"
+                lambda current_driver: (
+                    current_driver.execute_script("return document.readyState")
+                    in ("interactive", "complete")
                 )
-                in ("interactive", "complete")
             )
 
             try:

@@ -10,7 +10,12 @@ from unittest.mock import AsyncMock, patch
 sys.path.append(os.path.join(os.path.dirname(__file__), "../src"))
 
 import main as app_main
-from models import AssetSnapshot, ModeFormatConfig, ReportFormatConfig, SummarySectionConfig
+from models import (
+    AssetSnapshot,
+    ModeFormatConfig,
+    ReportFormatConfig,
+    SummarySectionConfig,
+)
 
 
 class MainTests(unittest.IsolatedAsyncioTestCase):
@@ -69,7 +74,9 @@ class MainTests(unittest.IsolatedAsyncioTestCase):
 
             self.assertEqual(exit_code, 0)
             self.assertTrue(output_path.exists())
-            self.assertEqual(output_path.read_text(encoding="utf-8"), "<html>report</html>")
+            self.assertEqual(
+                output_path.read_text(encoding="utf-8"), "<html>report</html>"
+            )
             html_report.assert_called_once_with(data)
             telegram_summary.assert_called_once_with(data, "US", config)
             telegram.assert_not_awaited()

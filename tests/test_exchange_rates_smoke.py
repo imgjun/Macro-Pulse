@@ -39,7 +39,9 @@ class FrankfurterSmokeTests(unittest.TestCase):
         usd_url = build_frankfurter_latest_url("USD", ["KRW", "JPY", "CNY"])
         eur_url = build_frankfurter_latest_url("EUR", ["USD"])
 
-        with urlopen(build_frankfurter_request("USD", ["KRW", "JPY", "CNY"]), timeout=15) as response:
+        with urlopen(
+            build_frankfurter_request("USD", ["KRW", "JPY", "CNY"]), timeout=15
+        ) as response:
             usd_data = json.load(response)
         with urlopen(build_frankfurter_request("EUR", ["USD"]), timeout=15) as response:
             eur_data = json.load(response)

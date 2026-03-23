@@ -15,7 +15,9 @@ class ScreenshotUtilsTests(unittest.TestCase):
 
         try:
             self.assertEqual(os.path.dirname(path), tempfile.gettempdir())
-            self.assertTrue(os.path.basename(path).startswith("macro_pulse_finviz_map_"))
+            self.assertTrue(
+                os.path.basename(path).startswith("macro_pulse_finviz_map_")
+            )
             self.assertTrue(path.endswith(".png"))
         finally:
             if os.path.exists(path):

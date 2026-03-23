@@ -42,9 +42,7 @@ YF_TICKERS = {
         TickerDefinition("Bitcoin", "BTC-USD"),
         TickerDefinition("Ethereum", "ETH-USD"),
     ),
-    "volatility": (
-        TickerDefinition("VIX", "^VIX"),
-    ),
+    "volatility": (TickerDefinition("VIX", "^VIX"),),
 }
 
 # YF Tickers for Exchange Rates History (Hybrid Approach)
@@ -111,7 +109,9 @@ def fetch_all_data() -> ReportDataset:
             change_pct = None
             history = []
 
-        normalized_history = history if history is not None else [price] if price else []
+        normalized_history = (
+            history if history is not None else [price] if price else []
+        )
         return AssetSnapshot(
             name=name,
             price=float(price) if price is not None else None,
@@ -306,7 +306,8 @@ def fetch_all_data() -> ReportDataset:
 
 def _configure_runtime_cache() -> None:
     cache_dir = os.environ.get(
-        "YFINANCE_CACHE_DIR", os.path.join(tempfile.gettempdir(), "macro-pulse-yfinance")
+        "YFINANCE_CACHE_DIR",
+        os.path.join(tempfile.gettempdir(), "macro-pulse-yfinance"),
     )
     os.makedirs(cache_dir, exist_ok=True)
     if hasattr(yf, "set_tz_cache_location"):

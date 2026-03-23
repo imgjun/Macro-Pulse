@@ -14,7 +14,9 @@ DEFAULT_DAILY_WORKFLOW_PATH = ".github/workflows/daily_report.yml"
 def get_workflow_schedule_entries(
     format_config: ReportFormatConfig | dict | None = None,
 ) -> list[tuple[str, str, str, str, str]]:
-    config = normalize_report_format_config(format_config or load_report_format_config())
+    config = normalize_report_format_config(
+        format_config or load_report_format_config()
+    )
     entries: list[tuple[str, str, str, str, str]] = []
 
     for mode, mode_config in config.modes.items():
@@ -51,7 +53,10 @@ def render_daily_workflow_schedule_block(
 
 
 def update_generated_schedule_block(workflow_text: str, schedule_block: str) -> str:
-    if SCHEDULE_BLOCK_START not in workflow_text or SCHEDULE_BLOCK_END not in workflow_text:
+    if (
+        SCHEDULE_BLOCK_START not in workflow_text
+        or SCHEDULE_BLOCK_END not in workflow_text
+    ):
         raise ValueError("Workflow file is missing generated schedule block markers.")
 
     start = workflow_text.index(SCHEDULE_BLOCK_START)

@@ -144,11 +144,7 @@ def _parse_change_block(raw_value, fallback_sign=None):
     change = _parse_numeric(change_match.group(0), fallback_sign=fallback_sign)
 
     change_pct_match = re.search(r"([+-]?\d[\d,]*(?:\.\d+)?)\s*%", normalized)
-    change_pct = (
-        _parse_numeric(change_pct_match.group(1))
-        if change_pct_match
-        else None
-    )
+    change_pct = _parse_numeric(change_pct_match.group(1)) if change_pct_match else None
 
     return change, change_pct
 

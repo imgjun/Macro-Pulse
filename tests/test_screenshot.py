@@ -29,8 +29,10 @@ class ScreenshotSmokeTests(unittest.TestCase):
                     self.assertIsNotNone(path)
                     self.assertTrue(os.path.exists(path))
                 finally:
-                    if path and os.path.exists(path) and not os.environ.get(
-                        "KEEP_TEST_ARTIFACTS"
+                    if (
+                        path
+                        and os.path.exists(path)
+                        and not os.environ.get("KEEP_TEST_ARTIFACTS")
                     ):
                         os.remove(path)
 

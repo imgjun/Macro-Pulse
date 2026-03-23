@@ -32,7 +32,9 @@ def load_report_format_config(config_path=None):
 
 def get_mode_format(mode, format_config=None):
     normalized_mode = (mode or "").strip().upper()
-    config = normalize_report_format_config(format_config or load_report_format_config())
+    config = normalize_report_format_config(
+        format_config or load_report_format_config()
+    )
     modes = config.modes
 
     if normalized_mode not in modes:
