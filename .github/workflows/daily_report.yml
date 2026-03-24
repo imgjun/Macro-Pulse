@@ -26,6 +26,7 @@ jobs:
       REPORT_FORMAT_CONFIG: config/report_formats.json
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true" # Added for use Node Upversion
 
     steps:
     - name: Checkout code
