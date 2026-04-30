@@ -10,8 +10,16 @@ finviz_map.png
 kospi_map.png
 kosdaq_map.png
 .venv/
-.venv/
 test_report.html
 AGENTS.md
 agent.md
 .agent/
+
+# Telethon session files (contain auth tokens — never commit)
+*.session
+*.session-journal
+
+# Log files
+auto-trade.log
+macro-pulse.log
+*.log
