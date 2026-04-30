@@ -26,6 +26,9 @@ jobs:
       REPORT_FORMAT_CONFIG: config/report_formats.json
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+      TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+      TELEGRAM_SESSION_STRING: ${{ secrets.TELEGRAM_SESSION_STRING }}
 
     steps:
     - name: Checkout code
@@ -48,6 +51,9 @@ jobs:
           -e REPORT_FORMAT_CONFIG \
           -e TELEGRAM_BOT_TOKEN \
           -e TELEGRAM_CHAT_ID \
+          -e TELEGRAM_API_ID \
+          -e TELEGRAM_API_HASH \
+          -e TELEGRAM_SESSION_STRING \
           -v "$PWD:/app" \
           -w /app \
           macro-pulse:daily \
