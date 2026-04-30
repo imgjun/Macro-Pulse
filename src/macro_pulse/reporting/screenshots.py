@@ -85,9 +85,12 @@ def capture_screenshots(targets):
         if capture is None:
             logger.warning("Unknown screenshot target in config: %s", target)
             continue
-        screenshot_path = capture()
-        if screenshot_path:
-            screenshot_paths.append(screenshot_path)
+        result = capture()
+        # Handlers may return a single path (str) or multiple paths (list[str])
+        if isinstance(result, list):
+            screenshot_paths.extend(p for p in result if p)
+        elif result:
+            screenshot_paths.append(result)
 
     return screenshot_paths
 
@@ -281,8 +284,23 @@ def _resolve_chromedriver_binary():
     return ChromeDriverManager().install()
 
 
+def take_yakjangsu_screenshots(output_dir=None) -> list[str]:
+    """
+    Fetch the latest batch of US market chart images from the @yakjangsu
+    Telegram channel via Telethon MTProto client.
+
+    Returns a list of downloaded image paths (up to 5).
+    Falls back to an empty list if credentials are missing or Telethon is not installed.
+    """
+    from ..data.providers.telegram_channel import fetch_yakjangsu_images  # noqa: PLC0415
+
+    return fetch_yakjangsu_images(output_dir=output_dir)
+
+
 SCREENSHOT_HANDLERS = {
     "finviz": take_finviz_screenshot,
     "kospi": take_kospi_screenshot,
     "kosdaq": take_kosdaq_screenshot,
+    # yakjangsu returns multiple paths, handled separately in capture_screenshots
+    "yakjangsu": take_yakjangsu_screenshots,
 }

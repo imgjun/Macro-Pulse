@@ -13,6 +13,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     CHROMEDRIVER_BIN=/usr/bin/chromedriver \
     PATH="/opt/venv/bin:/root/.local/bin:$PATH"
 
+# Telegram credentials are injected at runtime via --env-file or GitHub Secrets.
+# TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID   — Bot API (sending reports)
+# TELEGRAM_API_ID, TELEGRAM_API_HASH     — MTProto app credentials
+# TELEGRAM_SESSION_STRING                — Telethon StringSession (no 2FA needed at runtime)
+
 WORKDIR /app
 
 RUN apt-get update \

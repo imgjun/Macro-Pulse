@@ -2,30 +2,37 @@
 
 # Macro Pulse Bot
 
-Macro Pulse Bot은 시장 매크로 지표와 지수 히트맵을 종합한 보고서를 텔레그램으로 발송하는 자동화 프로젝트입니다.
-
-- 주요 지표를 수집합니다.
-- HTML 리포트를 만듭니다.
-- 텔레그램으로 보낼 수 있습니다.
-- GitHub Actions로 정해진 시간에 자동 실행할 수 있습니다.
+매일 미국장/한국장 마감 후 주요 매크로 지표를 수집하고, 시황 이미지와 함께 텔레그램 채널에 자동으로 발송하는 봇입니다.
 
 ## 주요 기능
 
-- 한국장(`KR`) 또는 미국장(`US`) 기준으로 리포트를 만듭니다.
-- 주가지수, 환율, 금리, 원자재, 비트코인 같은 지표를 모읍니다.
-- 텔레그램용 짧은 요약과 HTML 리포트를 함께 만듭니다.
-- 시장 분위기를 보기 위한 스크린샷도 붙일 수 있습니다.
-  - `KR`: KOSPI / KOSDAQ 히트맵
-  - `US`: Finviz 맵
+| 모드 | 실행 시각 (KST) | 내용 |
+|------|----------------|------|
+| `US` | 화~토 오전 6:30 | 미국장 마감 후: S&P500/Nasdaq/VIX/채권/환율 + @yakjangsu 이미지 5장 |
+| `KR` | 월~금 오후 5:00 | 한국장 마감 후: KOSPI/KOSDAQ/VIX/환율 + KOSPI/KOSDAQ 히트맵 |
 
-## 동작 방식
+### 이미지 소스 (US 모드)
 
-1. Yahoo Finance와 CNBC quote page에서 데이터를 가져옵니다.
-2. 가져온 데이터를 정리합니다.
-3. HTML 리포트와 텔레그램 요약 문구를 만듭니다.
-4. 필요하면 텔레그램으로 전송합니다.
+US 마감 보고서에서 이미지는 `@yakjangsu` 텔레그램 채널에서 가져옵니다. 이 채널은 미국장 마감 직후(인도시간 기준 오전 2시, KST 오전 5시경) 시황 차트를 자동으로 포스팅합니다. Telethon MTProto 클라이언트로 해당 배치에서 이미지 5장을 선택합니다.
 
-실제 실행 파일은 [`src/main.py`](src/main.py)입니다.
+> 이전 버전에서는 Selenium으로 FinViz 맵을 직접 캡처했으나, 안정성·속도·토큰 절약을 위해 yakjangsu 채널 방식으로 전환했습니다.
+
+## 동작 파이프라인
+
+```
+[GitHub Actions cron]
+    │
+    ├─ Yahoo Finance / CNBC  ──→ 지표 수집 (market_data.py)
+    │
+    ├─ US 모드: @yakjangsu Telethon  ──→ 이미지 5장 다운로드
+    │   KR 모드: Selenium (hankyung.com) ──→ KOSPI/KOSDAQ 히트맵
+    │
+    ├─ HTML 리포트 생성 + GitHub Pages 배포
+    │
+    └─ Telegram Bot API  ──→ 요약 텍스트 + 이미지 전송
+```
+
+자세한 구조는 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)를 참고하세요.
 
 ## 수집 항목
 
@@ -58,14 +65,31 @@ TELEGRAM Token등 KEY 설정은 [`docs/SECRETS.md`](docs/SECRETS.md)에서 볼 �
 
 코드를 몰라도 JSON만 조금 수정하면 순서를 바꿀 수 있습니다.
 
-## Fork 설정
+## 초기 설정
 
-Fork해서 바로 쓰려면 아래만 먼저 설정하면 됩니다.
+### 1. Telegram 시크릿 등록 (GitHub Actions Secrets)
 
-1. Fork한 저장소의 `Actions` 탭에서 워크플로를 활성화합니다.
-2. `Settings > Secrets and variables > Actions`에서 Telegram Secret을 등록합니다.
-3. 웹 리포트도 보고 싶다면 `Settings > Pages`에서 source를 `GitHub Actions`로 설정합니다.
-4. 필요하면 [`config/report_formats.json`](config/report_formats.json)에서 KR/US 포맷과 스케줄을 바꿉니다.
+`Settings > Secrets and variables > Actions`에서 아래 항목을 등록합니다.
+
+| Secret 이름 | 설명 |
+|-------------|------|
+| `TELEGRAM_BOT_TOKEN` | @BotFather에서 발급한 봇 토큰 |
+| `TELEGRAM_CHAT_ID` | 리포트를 보낼 채널/그룹 ID |
+| `TELEGRAM_API_ID` | [my.telegram.org](https://my.telegram.org) App API ID |
+| `TELEGRAM_API_HASH` | my.telegram.org App API Hash |
+| `TELEGRAM_SESSION_STRING` | Telethon StringSession (`scripts/generate_session.py`로 생성) |
+
+### 2. Telethon 세션 생성 (최초 1회)
+
+```bash
+uv run python scripts/generate_session.py
+```
+
+출력된 `TELEGRAM_SESSION_STRING` 값을 `.env` 파일과 GitHub Secrets에 저장합니다. 이후에는 재인증 없이 GCP/Docker 환경에서 자동 실행됩니다.
+
+### 3. GitHub Pages (선택)
+
+`Settings > Pages > Source`를 `GitHub Actions`로 설정하면 매일 최신 HTML 리포트가 자동 배포됩니다.
 
 ## 로컬 / Docker 실행
 

@@ -11,6 +11,7 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "python-telegram-bot>=22.6",
     "selenium>=4.28.1",
+    "telethon>=1.36.0",
     "webdriver-manager>=4.0.2",
     "yfinance>=0.2.54",
 ]
