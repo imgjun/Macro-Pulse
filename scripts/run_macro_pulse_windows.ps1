@@ -4,7 +4,9 @@ param(
 
     [switch]$DryRun,
 
-    [switch]$RequireUsCloseWindow
+    [switch]$RequireUsCloseWindow,
+
+    [switch]$RequireKrCloseWindow
 )
 
 $ErrorActionPreference = 'Stop'
@@ -81,6 +83,27 @@ function Test-UsMarketCloseWindow {
     }
 }
 
+function Test-KrMarketCloseWindow {
+    $krZone = [System.TimeZoneInfo]::FindSystemTimeZoneById('Korea Standard Time')
+    $utcNow = [DateTimeOffset]::UtcNow
+    $krOffset = $krZone.GetUtcOffset($utcNow.UtcDateTime)
+    $krNow = $utcNow.ToOffset($krOffset)
+    $isWeekday = $krNow.DayOfWeek -in @(
+        [System.DayOfWeek]::Monday,
+        [System.DayOfWeek]::Tuesday,
+        [System.DayOfWeek]::Wednesday,
+        [System.DayOfWeek]::Thursday,
+        [System.DayOfWeek]::Friday
+    )
+
+    return [PSCustomObject]@{
+        KrNow = $krNow
+        KrNowText = ('{0} KST' -f $krNow.ToString('yyyy-MM-dd HH:mm:ss zzz'))
+        IsWeekday = $isWeekday
+        IsCloseWindow = $isWeekday -and $krNow.Hour -eq 15 -and $krNow.Minute -ge 30
+    }
+}
+
 Write-Log "[$(Get-Date -Format o)] repo=$repoRoot market=$Market dryRun=$DryRun"
 
 if ($RequireUsCloseWindow -and $Market -eq 'US') {
@@ -88,6 +111,15 @@ if ($RequireUsCloseWindow -and $Market -eq 'US') {
     Write-Log "US close-window gate: etNow=$($window.EtNowText) isWeekday=$($window.IsWeekday) isCloseWindow=$($window.IsCloseWindow)"
     if (-not $window.IsCloseWindow) {
         Write-Log 'Outside US market-close window; exiting without running Macro-Pulse.'
+        exit 0
+    }
+}
+
+if ($RequireKrCloseWindow -and $Market -eq 'KR') {
+    $window = Test-KrMarketCloseWindow
+    Write-Log "KR close-window gate: krNow=$($window.KrNowText) isWeekday=$($window.IsWeekday) isCloseWindow=$($window.IsCloseWindow)"
+    if (-not $window.IsCloseWindow) {
+        Write-Log 'Outside KR market-close window; exiting without running Macro-Pulse.'
         exit 0
     }
 }

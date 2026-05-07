@@ -76,7 +76,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run_macro_pulse_windows.ps1 -
 - `Macro-Pulse-US`: Windows 시간대가 `India Standard Time (IST)`일 때 `Tue-Sat 01:35`, `02:35` 이중 트리거
   - 스크립트가 내부적으로 `America/New_York` 기준 현재 시각을 계산하고, **미국 정규장 마감 16시대(ET)**일 때만 실제 실행합니다.
   - 목적: 뉴욕 DST(EDT/EST) 변경 시 스케줄러 시간을 수동으로 자주 바꾸지 않기 위함
-- `Macro-Pulse-KR`: `Mon-Fri 16:30 IST`
+- `Macro-Pulse-KR`: `Mon-Fri 12:05 IST`
+  - 스크립트가 내부적으로 `Asia/Seoul` 기준 현재 시각을 계산하고, **한국 정규장 마감 15:30 KST 이후**일 때만 실제 실행합니다.
 
 로그 위치:
 - `logs/windows-scheduler/*.log`

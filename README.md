@@ -15,7 +15,7 @@ Macro Pulse Bot은 미국장/한국장 마감 후 주요 매크로 지표를 수
 - **현재 활성 스케줄러:** Windows Task Scheduler (`Macro-Pulse-US`, `Macro-Pulse-KR`)
 - **Windows 시스템 시간대:** 마지막 검증 기준 `India Standard Time (IST)`
 - **US 스케줄 방식:** IST 기준 `Tue-Sat 01:35` + `02:35` 이중 트리거, 스크립트 내부에서 **미국장 마감(16:00 ET) 윈도우**일 때만 실제 실행
-- **KR 스케줄 방식:** IST 기준 `Mon-Fri 16:30`
+- **KR 스케줄 방식:** IST 기준 `Mon-Fri 12:05` 트리거, 스크립트 내부에서 **한국장 마감(15:30 KST) 이후 윈도우**일 때만 실제 실행
 - **현재 검증 우선 환경:** 로컬 Windows / WSL
 
 즉, 이 저장소는 지금 **데이터 수집 + 리포트 생성 + Telegram 전송 코드**를 Windows 로컬 스케줄러와 함께 운영하는 상태입니다.

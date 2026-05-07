@@ -19,7 +19,7 @@ Macro Pulse Bot collects market data after the Korea or US market close and buil
 - **Active scheduler:** Windows Task Scheduler (`Macro-Pulse-US`, `Macro-Pulse-KR`)
 - **Windows host timezone:** last verified as `India Standard Time (IST)`
 - **US scheduler mode:** dual triggers at `Tue-Sat 01:35` and `02:35` IST, with an in-script guard that only runs during the actual US regular-close hour (`16:00 ET`)
-- **KR scheduler mode:** `Mon-Fri 16:30 IST`
+- **KR scheduler mode:** `Mon-Fri 12:05 IST`, with an in-script guard that only runs after the Korea market close window (`15:30 KST`)
 - **Preferred validation environment right now:** local Windows / WSL
 
 This means the repository is currently operated through the local Windows scheduler, with GitHub Actions kept only for CI.
