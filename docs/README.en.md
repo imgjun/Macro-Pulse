@@ -2,87 +2,90 @@
 
 # Macro Pulse Bot
 
-Macro Pulse Bot is an automation project that collects market data and turns it into a simple daily report.
+Macro Pulse Bot collects market data after the Korea or US market close and builds:
+- a Telegram summary
+- an HTML report
+- optional visual attachments
 
-- It gathers market data.
-- It creates an HTML report.
-- It can send the result to Telegram.
-- It can run automatically with GitHub Actions.
+## Current operating status
 
-If you are not familiar with finance, the easiest way to think about it is: "a bot that collects important market numbers and summarizes them."
+- **US image source:** `@yakjangsu`
+- **US fetch method:** Telethon MTProto user session
+- **US default behavior:** download the **full latest image batch**
+- **KR image source:** Selenium captures for KOSPI / KOSDAQ heatmaps
+- **GitHub Actions:** **CI only**
+- **GitHub Pages / manual report workflows:** removed during cleanup
+- **GCP crontab:** last verified state showed **no active Macro-Pulse entries**
+- **Preferred validation environment right now:** local Windows / WSL
+
+This means the repository currently focuses on report generation and Telegram delivery logic, while the production scheduler is still to be decided explicitly.
 
 ## Features
 
-- Builds a report for either the Korean market (`KR`) or US market (`US`)
-- Collects indices, FX, bond yields, commodities, and crypto data
-- Creates both a short Telegram summary and a full HTML report
-- Optionally attaches screenshots for quick visual context
+- `KR` and `US` market modes
+- Yahoo Finance / CNBC market data collection
+- HTML report generation
+- Telegram summary generation and delivery
+- Visual attachments
   - `KR`: KOSPI / KOSDAQ heatmaps
-  - `US`: Finviz market map
+  - `US`: latest full `@yakjangsu` image batch
 
-## Flow
+## Execution flow
 
-The flow is simple.
+```text
+src/main.py
+  -> market_data.fetch_all_data()
+  -> reporting.generator
+  -> reporting.screenshots.capture_screenshots()
+     - KR: Selenium heatmaps
+     - US: Telethon fetch from @yakjangsu
+  -> delivery.notifier.send_telegram_report()
+```
 
-1. Fetch data from Yahoo Finance and CNBC quote pages.
-2. Clean up and organize the data.
-3. Create an HTML report and Telegram summary text.
-4. Optionally send the result by Telegram.
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for more detail.
 
-The real entry point is [`src/main.py`](../src/main.py).
+## US image fetch behavior
 
-## Covered Data
+For US close reports, the bot reads the latest photo batch from `@yakjangsu`.
 
-- Korean indices: `KOSPI`, `KOSDAQ`
-- Overseas indices: `S&P 500`, `Nasdaq`, `Nikkei 225`, and more
-- Rates and commodities: `US 10Y Treasury`, `Gold`, `Silver`, `Copper`
-- FX: `USD/KRW`, `JPY/KRW`, `EUR/KRW`, `CNY/KRW`
-- Crypto: `Bitcoin`, `Ethereum`
-- Volatility: `VIX`, `VKOSPI`
+Current behavior:
+- authenticate with a Telethon **user** session
+- inspect recent channel history
+- find the latest photo batch within `BATCH_WINDOW_SECONDS = 300`
+- preserve the original posting order
+- download the **entire latest batch** by default
+- use a default age filter of **24 hours**
 
-## GitHub Actions
+## Environment variables
 
-This repository already includes GitHub Actions workflows.
+### Telegram sending
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
 
-- Run the report on a schedule
-- Publish the latest report to GitHub Pages
-- Upload logs and outputs as artifacts
-- Send a Telegram alert when a workflow fails
+### Telegram reading via MTProto
+- `TELEGRAM_API_ID`
+- `TELEGRAM_API_HASH`
+- `TELEGRAM_SESSION_STRING`
 
-If you need the required secrets, see [`SECRETS.en.md`](SECRETS.en.md).
+Generate the session with:
 
-## Format Settings
+```bash
+uv run python scripts/generate_session.py
+```
 
-You can edit [`config/report_formats.json`](../config/report_formats.json).
+`TELEGRAM_SESSION_STRING` must be a Telethon StringSession, not a bot token.
 
-That file controls:
+## Local run
 
-- which sections appear first
-- which items are included
-- which screenshots are attached
-- the KR/US workflow cron schedule
+See [`LOCAL_RUN.en.md`](LOCAL_RUN.en.md) for the full guide.
 
-You do not need deep Python knowledge for simple ordering changes.
+Quick examples:
 
-## Fork Setup
-
-If you want to use this project from your own fork, set up these items first.
-
-1. Open the `Actions` tab in your fork and enable workflows.
-2. Add the Telegram secrets in `Settings > Secrets and variables > Actions`.
-3. If you want the web report, enable `Settings > Pages` and set the source to `GitHub Actions`.
-4. If needed, edit [`config/report_formats.json`](../config/report_formats.json) for KR/US format and schedule changes.
-
-## Local / Docker Run
-
-You can find the full run guide in [`LOCAL_RUN.en.md`](LOCAL_RUN.en.md).
-
-> Quick preview
->
-> - Install: `uv sync --all-groups`
-> - Python dry run: `uv run python src/main.py --dry-run`
-> - Docker build: `docker build -t macro-pulse .`
-> - Docker dry run: `docker run --rm --env-file .env -v "$PWD:/app" -w /app macro-pulse uv run --frozen python src/main.py --dry-run`
+```bash
+uv sync --all-groups
+uv run python src/main.py --dry-run --market US
+uv run python src/main.py --market KR
+```
 
 ## Testing
 
@@ -92,39 +95,44 @@ Basic tests:
 uv run python -m unittest discover tests
 ```
 
-Live smoke tests against external services:
+Important regression tests:
 
 ```bash
-RUN_LIVE_SMOKE_TESTS=1 uv run python -m unittest discover tests
+uv run python -m unittest tests.test_main -v
+uv run python -m unittest tests.test_report_format_config -v
 ```
 
-Screenshot smoke tests:
+Smoke tests:
 
 ```bash
 RUN_SCREENSHOT_SMOKE_TESTS=1 uv run python -m unittest tests.test_screenshot
+RUN_LIVE_SMOKE_TESTS=1 uv run python -m unittest discover tests
 ```
 
-## Screenshot Examples
+## GitHub Actions
 
-### US Close Example
+The repository now keeps only **CI** in GitHub Actions.
 
-![US close report example](../assets/us.png)
+Kept:
+- test runs on `push` and `pull_request`
+- CI log artifact upload
 
-### Korea Close Example
+Removed:
+- GitHub report workflows
+- GitHub Pages deployment workflow
+- keepalive workflow
 
-![Korea close report example](../assets/kr.png)
+## Useful files
 
-## Useful Files
-
-- [`src/main.py`](../src/main.py): app entry point
-- [`src/macro_pulse/data/market_data.py`](../src/macro_pulse/data/market_data.py): data collection orchestration
-- [`src/macro_pulse/reporting/generator.py`](../src/macro_pulse/reporting/generator.py): report creation
-- [`src/macro_pulse/delivery/notifier.py`](../src/macro_pulse/delivery/notifier.py): Telegram delivery
-- [`config/report_formats.json`](../config/report_formats.json): summary format settings
+- [`../src/main.py`](../src/main.py): asyncio entry point
+- [`../src/macro_pulse/app/cli.py`](../src/macro_pulse/app/cli.py): main orchestration
+- [`../src/macro_pulse/data/providers/telegram_channel.py`](../src/macro_pulse/data/providers/telegram_channel.py): yakjangsu fetcher
+- [`../src/macro_pulse/reporting/screenshots.py`](../src/macro_pulse/reporting/screenshots.py): screenshot handlers
+- [`../src/macro_pulse/delivery/notifier.py`](../src/macro_pulse/delivery/notifier.py): Telegram delivery
+- [`../config/report_formats.json`](../config/report_formats.json): report format metadata
 
 ## Troubleshooting
 
-- If screenshots fail, check your Chrome/Chromium setup first.
-- If Telegram messages do not arrive, re-check `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.
-- If some numbers are missing, an external data source may have failed.
-- If GitHub Pages does not update, check that `Settings > Pages` uses `GitHub Actions` as the source.
+- `No recent photo messages found` usually means the age filter and the channel post time do not match.
+- `TELEGRAM_SESSION_STRING` must resolve to a user session, not a bot session.
+- `async with` Telethon errors usually mean a sync client path was reintroduced into the async flow.

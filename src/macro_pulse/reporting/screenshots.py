@@ -1,3 +1,4 @@
+import inspect
 import os
 import shutil
 import time
@@ -75,7 +76,7 @@ def get_chrome_driver():
         return None
 
 
-def capture_screenshots(targets):
+async def capture_screenshots(targets):
     screenshot_paths = []
     if targets:
         logger.info("Taking screenshots for targets: %s", ", ".join(targets))
@@ -86,6 +87,8 @@ def capture_screenshots(targets):
             logger.warning("Unknown screenshot target in config: %s", target)
             continue
         result = capture()
+        if inspect.isawaitable(result):
+            result = await result
         # Handlers may return a single path (str) or multiple paths (list[str])
         if isinstance(result, list):
             screenshot_paths.extend(p for p in result if p)
@@ -284,17 +287,19 @@ def _resolve_chromedriver_binary():
     return ChromeDriverManager().install()
 
 
-def take_yakjangsu_screenshots(output_dir=None) -> list[str]:
+async def take_yakjangsu_screenshots(output_dir=None) -> list[str]:
     """
     Fetch the latest batch of US market chart images from the @yakjangsu
     Telegram channel via Telethon MTProto client.
 
-    Returns a list of downloaded image paths (up to 5).
+    Returns a list of downloaded image paths from the latest yakjangsu batch.
     Falls back to an empty list if credentials are missing or Telethon is not installed.
     """
-    from ..data.providers.telegram_channel import fetch_yakjangsu_images  # noqa: PLC0415
+    from ..data.providers.telegram_channel import (  # noqa: PLC0415
+        fetch_yakjangsu_images_async,
+    )
 
-    return fetch_yakjangsu_images(output_dir=output_dir)
+    return await fetch_yakjangsu_images_async(output_dir=output_dir)
 
 
 SCREENSHOT_HANDLERS = {

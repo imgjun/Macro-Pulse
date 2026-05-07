@@ -1,66 +1,96 @@
 # Macro Pulse - Architecture
 
-## System Overview
+## Current system overview
 
 ```text
-GitHub Actions schedule
-  -> docker run macro-pulse:daily
-  -> src/main.py
-  -> market data + screenshots
-  -> reporting/generator.py
-  -> delivery/notifier.py
-  -> GitHub Pages + Telegram delivery
+Local / WSL execution (currently preferred for validation)
+    |
+    +-- src/main.py (asyncio entry point)
+          |
+          +-- market_data.fetch_all_data()
+          |     +-- Yahoo Finance
+          |     +-- CNBC
+          |
+          +-- reporting.generator
+          |     +-- HTML report
+          |     +-- Telegram text summary
+          |
+          +-- reporting.screenshots.capture_screenshots()
+          |     +-- KR -> Selenium heatmaps
+          |     +-- US -> Telethon fetch from @yakjangsu
+          |
+          +-- delivery.notifier.send_telegram_report()
+                +-- Telegram Bot API: sendMessage + sendPhoto
 ```
 
-Current schedule:
+## Scheduler status
 
-- KR mode: weekdays 08:00 UTC (= 17:00 KST)
-- US mode: weekdays 21:30 UTC (= 06:30 KST next day)
+Scheduler truth must be verified separately from repository docs.
+
+Current known status:
+- GitHub Actions scheduled/report workflows were removed
+- Only CI remains in `.github/workflows/ci.yml`
+- Last verified GCP state had no active Macro-Pulse crontab entries
+- A production scheduler choice still needs to be made explicitly later
 
 ## Main modules
 
 | Path | Role |
-|---|---|
-| `src/macro_pulse/app/cli.py` | Entry point, mode resolution, pipeline orchestration |
-| `data/market_data.py` | Yahoo Finance + CNBC collection |
-| `data/providers/telegram_channel.py` | Telethon image fetcher for `@yakjangsu` |
-| `reporting/generator.py` | HTML report and Telegram text generation |
-| `reporting/screenshots.py` | Screenshot handlers |
-| `delivery/notifier.py` | Telegram Bot API delivery |
-| `config/report_formats.py` | Loads `config/report_formats.json` |
-| `src/macro_pulse/workflows/schedule_sync.py` | Keeps workflow schedule aligned with config |
+|------|------|
+| `src/main.py` | asyncio entry point |
+| `src/macro_pulse/app/cli.py` | orchestrates mode resolution, data fetch, screenshots, report generation, delivery |
+| `src/macro_pulse/data/market_data.py` | bulk market data collection |
+| `src/macro_pulse/data/providers/telegram_channel.py` | async Telethon fetcher for `@yakjangsu` |
+| `src/macro_pulse/reporting/screenshots.py` | screenshot handlers for KR and US modes |
+| `src/macro_pulse/reporting/generator.py` | HTML report + Telegram summary generation |
+| `src/macro_pulse/delivery/notifier.py` | Telegram Bot API sender |
+| `config/report_formats.json` | report format metadata per mode |
 
-## Schedule ownership
+## `@yakjangsu` image fetch flow
 
-This repository is owned by **GitHub Actions** for scheduled execution.
+```text
+Telethon (MTProto user session)
+    |
+    +-- authenticate via StringSession
+    +-- iterate recent channel history
+    +-- filter photo messages within MAX_POST_AGE_HOURS
+    +-- find latest photo batch within BATCH_WINDOW_SECONDS
+    +-- preserve original posting order
+    +-- download full latest batch to a temp directory
+    +-- pass downloaded files to Telegram Bot API sender
+    +-- cleanup temp files
+```
 
-Source of truth:
+### Important runtime settings
 
-- `config/report_formats.json`
-- `.github/workflows/daily_report.yml`
-- `src/macro_pulse/workflows/schedule_sync.py`
+- `IMAGE_LIMIT = None` -> download the full latest batch
+- `MAX_POST_AGE_HOURS = 24`
+- `BATCH_WINDOW_SECONDS = 300`
 
-## Separation from trading-bot-seoul
+## Telegram credentials split
 
-`imgjun/GCP_trading-bot-seoul` is a separate repo with a different execution
-owner:
-
-- runtime owner: GCP VM cron
-- host path: `/home/patrick.jang/trading-bot-seoul`
-
-Do not merge the two execution models.
-
-## Runtime secrets
-
-Scheduled runs require these GitHub repository secrets:
-
+### Sending
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
+
+### Reading from `@yakjangsu`
 - `TELEGRAM_API_ID`
 - `TELEGRAM_API_HASH`
 - `TELEGRAM_SESSION_STRING`
 
-If the shared Telegram token is rotated, update both:
+The read path requires a **user** MTProto session. A bot session is not sufficient for channel history reads used here.
 
-- `Macro-Pulse` GitHub repository secrets
-- `trading-bot-seoul` GCP `.env`
+## GitHub Actions
+
+Only one workflow remains:
+- `.github/workflows/ci.yml`
+
+Its purpose is limited to:
+- running tests on `push` / `pull_request`
+- uploading CI logs as artifacts
+
+## Notes for future changes
+
+- If a scheduler is reintroduced, update docs and tests in the same commit.
+- If GitHub Pages or Telegram-enabled workflows return, document required secrets again.
+- Do not reintroduce `telethon.sync` into the async main path.

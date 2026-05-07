@@ -1,66 +1,90 @@
 **Language:** **한국어** | [English](LOCAL_RUN.en.md)
 
-# 로컬 / Docker 실행 가이드
+# 로컬 실행 가이드
 
-이 문서는 Macro Pulse Bot을 내 컴퓨터에서 직접 실행하는 방법을 정리한 문서입니다.
+이 문서는 Macro Pulse Bot을 로컬 Windows / WSL 또는 일반 로컬 환경에서 검증하는 방법을 정리합니다.
 
-## 1. uv 실행
-
-### 설치
+## 1. 의존성 설치
 
 ```bash
 uv python install
 uv sync --all-groups
 ```
 
-- 이 저장소는 [`pyproject.toml`](../pyproject.toml)과 [`uv.lock`](../uv.lock)을 기준으로 의존성을 관리합니다.
-- 기본 Python 버전은 [`.python-version`](../.python-version) 파일에 맞춰집니다.
+## 2. `.env` 준비
 
-### `.env` 준비
-
-프로젝트 루트에 `.env` 파일을 만들고 아래 값을 넣습니다.
+프로젝트 루트 `.env`에 아래 값을 준비하세요.
 
 ```ini
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-TELEGRAM_CHAT_ID=your_chat_id_here
+TELEGRAM_BOT_TOKEN=...
+TELEGRAM_CHAT_ID=...
+TELEGRAM_API_ID=...
+TELEGRAM_API_HASH=...
+TELEGRAM_SESSION_STRING=...
 ```
 
-- 텔레그램 값이 없으면 텔레그램 전송은 건너뜁니다.
+설명:
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`: 최종 전송용
+- `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_SESSION_STRING`: `@yakjangsu` 읽기용
 
-### 리포트만 생성
+### 세션 생성
 
 ```bash
-uv run python src/main.py --dry-run
+uv run python scripts/generate_session.py
 ```
 
-실행 후 `macro_pulse_report.html` 파일이 만들어집니다.
+출력값은 봇 토큰 형식이 아니라 `StringSession` 긴 문자열이어야 합니다.
 
-### 실제 전송까지 실행
+## 3. 권장 검증 순서
+
+### US dry-run
 
 ```bash
-uv run python src/main.py
+uv run python src/main.py --dry-run --market US
 ```
 
-### 시장 모드 직접 선택
+### KR dry-run
 
 ```bash
-uv run python src/main.py --market KR
+uv run python src/main.py --dry-run --market KR
+```
+
+### 실제 Telegram 전송 포함 실행
+
+```bash
 uv run python src/main.py --market US
+uv run python src/main.py --market KR
 ```
 
-- `KR`: 한국장 기준
-- `US`: 미국장 기준
-- 옵션을 빼면 UTC 시간을 기준으로 자동 선택합니다.
+## 4. yakjangsu fetch 단독 점검
 
-## 2. Docker 실행
+```bash
+PYTHONPATH=src uv run python - <<'PY'
+from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv(Path('.env'))
+import asyncio
+from macro_pulse.reporting.screenshots import capture_screenshots
 
-### 이미지 빌드
+async def main():
+    paths = await capture_screenshots(['yakjangsu'])
+    print({'count': len(paths), 'files': paths})
+
+asyncio.run(main())
+PY
+```
+
+정상이라면 최신 배치 전체가 다운로드됩니다.
+
+## 5. Docker 실행
+
+### 빌드
 
 ```bash
 docker build -t macro-pulse .
 ```
 
-### Dry run 실행
+### dry-run
 
 ```bash
 docker run --rm \
@@ -68,27 +92,21 @@ docker run --rm \
   -v "$PWD:/app" \
   -w /app \
   macro-pulse \
-  uv run --frozen python src/main.py --dry-run
+  uv run --frozen python src/main.py --dry-run --market US
 ```
 
-### 실제 실행
+## 6. 결과 파일
 
-```bash
-docker run --rm \
-  --env-file .env \
-  -v "$PWD:/app" \
-  -w /app \
-  macro-pulse \
-  uv run --frozen python src/main.py
-```
+- `macro_pulse_report.html`: HTML 리포트
+- Telegram 첨부 이미지: 임시 디렉터리에 생성 후 정리됨
 
-## 3. 결과 파일
+## 7. 문제 해결
 
-- `macro_pulse_report.html`: 생성된 HTML 리포트
-- 스크린샷 PNG: 전송용 임시 파일
-
-## 4. 문제 해결
-
-- 스크린샷이 실패하면 Chrome/Chromium 실행 환경을 확인하세요.
-- 텔레그램이 오지 않으면 `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`를 다시 확인하세요.
-- 일부 데이터가 비어 있으면 외부 데이터 소스 응답 문제일 수 있습니다.
+- `No recent photo messages found`:
+  - 채널 최신 이미지 업로드 시각 확인
+  - 시간 필터(`MAX_POST_AGE_HOURS`) 확인
+- `BotMethodInvalidError`:
+  - 봇 세션으로 채널 히스토리를 읽으려 할 때 발생
+- `You must use "async with" if the event loop is running`:
+  - sync Telethon client를 async 경로에서 호출할 때 발생
+- Windows에서 `.venv/lib64` 접근 오류가 나면 WSL에서 만든 `.venv`가 섞였는지 확인 후 재생성하세요.

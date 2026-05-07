@@ -2,7 +2,7 @@
 Telegram channel image fetcher using Telethon (MTProto client).
 
 Connects to a Telegram channel (default: t.me/yakjangsu) and downloads
-the 5 market chart images from the most recent posting batch.
+the market chart images from the most recent posting batch.
 
 Required environment variables:
     TELEGRAM_API_ID          - Your Telegram App API ID (from my.telegram.org)
@@ -10,12 +10,13 @@ Required environment variables:
     TELEGRAM_SESSION_STRING  - Base64 StringSession (generate via scripts/generate_session.py)
 
 The yakjangsu channel posts a batch of market images shortly after US market
-close (~05:00-05:30 KST). This module finds the most recent photo batch and
-selects up to IMAGE_LIMIT images from it.
+close (~05:00-05:30 KST). This module finds the most recent photo batch and,
+by default, downloads the full batch.
 """
 
 from __future__ import annotations
 
+import asyncio
 import os
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -28,11 +29,13 @@ logger = get_logger(__name__)
 # Target channel username (without @)
 DEFAULT_CHANNEL = "yakjangsu"
 
-# How many images to select from the latest batch
-IMAGE_LIMIT = 5
+# How many images to select from the latest batch.
+# None means download the full album.
+IMAGE_LIMIT = None
 
-# Max age of post to consider "today's" batch (hours)
-MAX_POST_AGE_HOURS = 12
+# Max age of post to consider the current batch (hours)
+# 24h is safer because the report may run well after the US close batch was posted.
+MAX_POST_AGE_HOURS = 24
 
 # How close together messages must be (seconds) to be considered a "batch"
 BATCH_WINDOW_SECONDS = 300  # 5 minutes
@@ -41,7 +44,32 @@ BATCH_WINDOW_SECONDS = 300  # 5 minutes
 def fetch_yakjangsu_images(
     output_dir: str | Path | None = None,
     channel: str = DEFAULT_CHANNEL,
-    limit: int = IMAGE_LIMIT,
+    limit: int | None = IMAGE_LIMIT,
+) -> list[str]:
+    """
+    Synchronous wrapper for environments that are not already running an event loop.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(
+            fetch_yakjangsu_images_async(
+                output_dir=output_dir,
+                channel=channel,
+                limit=limit,
+            )
+        )
+
+    raise RuntimeError(
+        "fetch_yakjangsu_images() cannot be used inside a running event loop; "
+        "use await fetch_yakjangsu_images_async() instead."
+    )
+
+
+async def fetch_yakjangsu_images_async(
+    output_dir: str | Path | None = None,
+    channel: str = DEFAULT_CHANNEL,
+    limit: int | None = IMAGE_LIMIT,
 ) -> list[str]:
     """
     Fetch the latest batch of market chart images from the target Telegram channel.
@@ -50,7 +78,7 @@ def fetch_yakjangsu_images(
     Returns an empty list if Telethon is unavailable or credentials are missing.
     """
     try:
-        from telethon.sync import TelegramClient  # noqa: PLC0415
+        from telethon import TelegramClient  # noqa: PLC0415
         from telethon.sessions import StringSession  # noqa: PLC0415
     except ImportError:
         logger.warning(
@@ -81,26 +109,34 @@ def fetch_yakjangsu_images(
     downloaded: list[str] = []
 
     try:
-        with TelegramClient(
+        async with TelegramClient(
             StringSession(session_string), int(api_id), api_hash
         ) as client:
             logger.info("Fetching images from @%s ...", channel)
-            messages = _fetch_recent_photo_messages(client, channel)
+            messages = await _fetch_recent_photo_messages(client, channel)
 
             if not messages:
                 logger.warning("No recent photo messages found in @%s", channel)
                 return []
 
             batch = _select_latest_batch(messages)
-            logger.info(
-                "Found batch of %d photo messages; downloading up to %d",
-                len(batch),
-                limit,
-            )
+            selected_batch = batch if limit is None else batch[:limit]
 
-            for i, msg in enumerate(batch[:limit]):
+            if limit is None:
+                logger.info(
+                    "Found batch of %d photo messages; downloading full batch",
+                    len(batch),
+                )
+            else:
+                logger.info(
+                    "Found batch of %d photo messages; downloading up to %d",
+                    len(batch),
+                    limit,
+                )
+
+            for i, msg in enumerate(selected_batch):
                 dest = out_dir / f"yakjangsu_{i + 1:02d}.jpg"
-                client.download_media(msg, file=str(dest))
+                await client.download_media(msg, file=str(dest))
                 if dest.exists():
                     downloaded.append(str(dest))
                     logger.info("Downloaded: %s", dest.name)
@@ -115,20 +151,21 @@ def fetch_yakjangsu_images(
         )
         return []
 
-    logger.info(
-        "Fetched %d/%d images from @%s", len(downloaded), limit, channel
-    )
+    if limit is None:
+        logger.info("Fetched %d images from @%s", len(downloaded), channel)
+    else:
+        logger.info("Fetched %d/%d images from @%s", len(downloaded), limit, channel)
     return downloaded
 
 
-def _fetch_recent_photo_messages(client, channel: str, fetch_count: int = 50):
+async def _fetch_recent_photo_messages(client, channel: str, fetch_count: int = 50):
     """Fetch recent messages that contain photos from the channel."""
     from telethon.tl.types import MessageMediaPhoto  # noqa: PLC0415
 
     cutoff = datetime.now(timezone.utc) - timedelta(hours=MAX_POST_AGE_HOURS)
     photo_messages = []
 
-    for msg in client.iter_messages(channel, limit=fetch_count):
+    async for msg in client.iter_messages(channel, limit=fetch_count):
         if msg.date.replace(tzinfo=timezone.utc) < cutoff:
             break
         if msg.media and isinstance(msg.media, MessageMediaPhoto):

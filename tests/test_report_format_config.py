@@ -13,10 +13,6 @@ from macro_pulse.config.report_formats import (
     load_report_format_config,
 )
 from macro_pulse.reporting.generator import generate_telegram_summary
-from macro_pulse.workflows.schedule_sync import (
-    render_daily_workflow_schedule_block,
-    workflow_matches_config,
-)
 
 
 class ReportFormatConfigTests(unittest.TestCase):
@@ -24,7 +20,7 @@ class ReportFormatConfigTests(unittest.TestCase):
         config = load_report_format_config()
 
         self.assertEqual(get_screenshot_targets("KR", config), ["kospi", "kosdaq"])
-        self.assertEqual(get_screenshot_targets("US", config), ["finviz"])
+        self.assertEqual(get_screenshot_targets("US", config), ["yakjangsu"])
 
     def test_default_config_defines_expected_workflow_schedules(self):
         config = load_report_format_config()
@@ -121,30 +117,13 @@ class ReportFormatConfigTests(unittest.TestCase):
         finally:
             os.remove(config_path)
 
-    def test_daily_report_workflow_schedule_block_matches_config(self):
-        config = load_report_format_config()
-        workflow_path = os.path.join(
-            os.path.dirname(__file__), "../.github/workflows/daily_report.yml"
+    def test_only_ci_workflow_remains(self):
+        workflow_dir = os.path.join(os.path.dirname(__file__), "../.github/workflows")
+        workflow_files = sorted(
+            name for name in os.listdir(workflow_dir) if name.endswith((".yml", ".yaml"))
         )
 
-        with open(workflow_path, "r", encoding="utf-8") as handle:
-            workflow_text = handle.read()
-
-        self.assertTrue(workflow_matches_config(workflow_text, config))
-        self.assertIn("# KR | 17:00 KST | 08:00 UTC | Mon-Fri", workflow_text)
-        self.assertEqual(
-            render_daily_workflow_schedule_block(config),
-            "\n".join(
-                [
-                    "    # BEGIN GENERATED SCHEDULES",
-                    "    # KR | 17:00 KST | 08:00 UTC | Mon-Fri",
-                    "    - cron: '00 08 * * 1-5'",
-                    "    # US | 06:30 KST | 21:30 UTC | Tue-Sat KST",
-                    "    - cron: '30 21 * * 1-5'",
-                    "    # END GENERATED SCHEDULES",
-                ]
-            ),
-        )
+        self.assertEqual(workflow_files, ["ci.yml"])
 
 
 if __name__ == "__main__":

@@ -1,21 +1,22 @@
 **Language:** [한국어](SECRETS.md) | **English**
 
-# GitHub Secrets
+# Secrets Notes
 
-To run Macro Pulse Bot correctly through GitHub Actions, add the following repository secrets.
+GitHub Actions in this repository is now **CI only**, so the default test workflow does not require repository secrets.
 
-The workflows run inside a runtime image built from `uv.lock`.
+## Values needed for local or operational runs
 
-Path:
-`Settings` -> `Secrets and variables` -> `Actions` -> `New repository secret`
+### Telegram sending
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`
 
-## Required
-
-### Telegram
-
-- `TELEGRAM_BOT_TOKEN`: the token from BotFather for your Telegram bot
-- `TELEGRAM_CHAT_ID`: the chat or channel ID that should receive the report
+### Telegram reading (`@yakjangsu` / Telethon)
+- `TELEGRAM_API_ID`
+- `TELEGRAM_API_HASH`
+- `TELEGRAM_SESSION_STRING`
 
 ## Notes
 
-- Secret names must match exactly.
+- `TELEGRAM_SESSION_STRING` must be a Telethon StringSession, not a bot token.
+- Never commit `.env`.
+- If Telegram-enabled GitHub workflows are added back later, define repository secrets at that time.

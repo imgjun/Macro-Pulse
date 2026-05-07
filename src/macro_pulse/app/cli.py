@@ -66,7 +66,7 @@ async def main(argv: list[str] | None = None) -> int:
         logger.info("Dry run complete. No notifications sent.")
         return 0
 
-    screenshot_paths = capture_screenshots(
+    screenshot_paths = await capture_screenshots(
         get_screenshot_targets(mode, report_format_config)
     )
 

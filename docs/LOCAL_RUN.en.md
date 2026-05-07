@@ -1,66 +1,88 @@
 **Language:** [한국어](LOCAL_RUN.md) | **English**
 
-# Local / Docker Run Guide
+# Local Run Guide
 
-This document explains how to run Macro Pulse Bot on your own machine.
+This document explains how to validate Macro Pulse Bot locally.
 
-## 1. uv
-
-### Install
+## 1. Install dependencies
 
 ```bash
 uv python install
 uv sync --all-groups
 ```
 
-- This repository manages dependencies with [`pyproject.toml`](../pyproject.toml) and [`uv.lock`](../uv.lock).
-- The default Python version is pinned in [`.python-version`](../.python-version).
+## 2. Prepare `.env`
 
-### Prepare `.env`
-
-Create a `.env` file in the project root.
+Create `.env` in the project root:
 
 ```ini
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
-TELEGRAM_CHAT_ID=your_chat_id_here
+TELEGRAM_BOT_TOKEN=...
+TELEGRAM_CHAT_ID=...
+TELEGRAM_API_ID=...
+TELEGRAM_API_HASH=...
+TELEGRAM_SESSION_STRING=...
 ```
 
-- If Telegram values are missing, Telegram delivery is skipped.
+Meaning:
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`: final delivery
+- `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_SESSION_STRING`: reading `@yakjangsu`
 
-### Generate only the report
+Generate the Telethon session with:
 
 ```bash
-uv run python src/main.py --dry-run
+uv run python scripts/generate_session.py
 ```
 
-This creates `macro_pulse_report.html`.
+## 3. Recommended validation order
 
-### Run the full flow
+### US dry run
 
 ```bash
-uv run python src/main.py
+uv run python src/main.py --dry-run --market US
 ```
 
-### Choose the market mode manually
+### KR dry run
 
 ```bash
-uv run python src/main.py --market KR
+uv run python src/main.py --dry-run --market KR
+```
+
+### Full run including Telegram send
+
+```bash
 uv run python src/main.py --market US
+uv run python src/main.py --market KR
 ```
 
-- `KR`: Korean market mode
-- `US`: US market mode
-- If you omit the option, the app auto-selects from current UTC time.
+## 4. Standalone yakjangsu fetch check
 
-## 2. Docker
+```bash
+PYTHONPATH=src uv run python - <<'PY'
+from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv(Path('.env'))
+import asyncio
+from macro_pulse.reporting.screenshots import capture_screenshots
 
-### Build the image
+async def main():
+    paths = await capture_screenshots(['yakjangsu'])
+    print({'count': len(paths), 'files': paths})
+
+asyncio.run(main())
+PY
+```
+
+A healthy run should download the latest full batch.
+
+## 5. Docker
+
+### Build
 
 ```bash
 docker build -t macro-pulse .
 ```
 
-### Run a dry run
+### Dry run
 
 ```bash
 docker run --rm \
@@ -68,27 +90,21 @@ docker run --rm \
   -v "$PWD:/app" \
   -w /app \
   macro-pulse \
-  uv run --frozen python src/main.py --dry-run
+  uv run --frozen python src/main.py --dry-run --market US
 ```
 
-### Run the full flow
-
-```bash
-docker run --rm \
-  --env-file .env \
-  -v "$PWD:/app" \
-  -w /app \
-  macro-pulse \
-  uv run --frozen python src/main.py
-```
-
-## 3. Output Files
+## 6. Output files
 
 - `macro_pulse_report.html`: generated HTML report
-- Screenshot PNGs: temporary files used only for delivery
+- Telegram attachment images: created in a temp directory and then cleaned up
 
-## 4. Troubleshooting
+## 7. Troubleshooting
 
-- If screenshots fail, check your Chrome/Chromium setup.
-- If Telegram messages do not arrive, re-check `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`.
-- If some data is missing, an external data source may have failed.
+- `No recent photo messages found`:
+  - check the latest channel post time
+  - check `MAX_POST_AGE_HOURS`
+- `BotMethodInvalidError`:
+  - happens when trying to read channel history with a bot session
+- `You must use "async with" if the event loop is running`:
+  - happens when a sync Telethon client is used in the async path
+- On Windows, `.venv/lib64` access issues usually mean a WSL-created virtualenv was reused accidentally.
