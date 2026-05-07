@@ -12,9 +12,13 @@ Macro Pulse Bot은 미국장/한국장 마감 후 주요 매크로 지표를 수
 - **GitHub Actions:** 현재는 **CI 전용**
 - **GitHub Pages / GitHub Actions 수동 리포트 워크플로:** 정리 대상이었고 현재 저장소에서 제거
 - **GCP crontab:** 마지막 점검 기준 **활성 Macro-Pulse 엔트리 없음**
+- **현재 활성 스케줄러:** Windows Task Scheduler (`Macro-Pulse-US`, `Macro-Pulse-KR`)
+- **Windows 시스템 시간대:** 마지막 검증 기준 `India Standard Time (IST)`
+- **US 스케줄 방식:** IST 기준 `Tue-Sat 01:35` + `02:35` 이중 트리거, 스크립트 내부에서 **미국장 마감(16:00 ET) 윈도우**일 때만 실제 실행
+- **KR 스케줄 방식:** IST 기준 `Mon-Fri 16:30`
 - **현재 검증 우선 환경:** 로컬 Windows / WSL
 
-즉, 이 저장소는 지금 **데이터 수집 + 리포트 생성 + Telegram 전송 코드**에 집중되어 있고, 스케줄러는 별도 확정이 필요합니다.
+즉, 이 저장소는 지금 **데이터 수집 + 리포트 생성 + Telegram 전송 코드**를 Windows 로컬 스케줄러와 함께 운영하는 상태입니다.
 
 ## 주요 기능
 

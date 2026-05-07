@@ -31,7 +31,10 @@ Current known status:
 - GitHub Actions scheduled/report workflows were removed
 - Only CI remains in `.github/workflows/ci.yml`
 - Last verified GCP state had no active Macro-Pulse crontab entries
-- A production scheduler choice still needs to be made explicitly later
+- Windows Task Scheduler is the active production scheduler
+- Windows host timezone was last verified as `India Standard Time (IST)`
+- `Macro-Pulse-US` uses dual `Tue-Sat 01:35` / `02:35` IST triggers plus an in-script ET close-window guard
+- `Macro-Pulse-KR` uses `Mon-Fri 16:30 IST`
 
 ## Main modules
 

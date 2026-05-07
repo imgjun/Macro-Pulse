@@ -29,7 +29,10 @@ Current known truth:
 - GitHub Actions scheduled/manual report workflows were removed during cleanup
 - Only `.github/workflows/ci.yml` remains
 - GCP cron is **not** currently confirmed active for Macro-Pulse
-- A future production scheduler must be explicitly chosen again
+- Windows Task Scheduler is the active local scheduler
+- Windows host timezone was last verified as `India Standard Time`
+- Current task names: `Macro-Pulse-US` (Tue-Sat 01:35 + 02:35 IST, ET close-window guard), `Macro-Pulse-KR` (Mon-Fri 16:30 IST)
+- Windows scheduled runs use `scripts/run_macro_pulse_windows.ps1` with `UV_PROJECT_ENVIRONMENT=.venv-win`
 
 ## Required environment variables
 

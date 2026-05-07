@@ -54,6 +54,22 @@ uv run python src/main.py --market US
 uv run python src/main.py --market KR
 ```
 
+### Windows scheduler wrapper script
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\\scripts\\run_macro_pulse_windows.ps1 -Market US
+powershell -ExecutionPolicy Bypass -File .\\scripts\\run_macro_pulse_windows.ps1 -Market KR
+```
+
+Currently verified Windows Task Scheduler jobs:
+- `Macro-Pulse-US`: when the Windows host timezone is `India Standard Time (IST)`, the task uses two triggers at `Tue-Sat 01:35` and `02:35`
+  - the script itself checks the current `America/New_York` time and only proceeds during the regular US market-close hour (`16:00 ET`)
+  - this avoids seasonal breakage across EDT/EST transitions
+- `Macro-Pulse-KR`: `Mon-Fri 16:30 IST`
+
+Logs:
+- `logs/windows-scheduler/*.log`
+
 ## 4. Standalone yakjangsu fetch check
 
 ```bash
